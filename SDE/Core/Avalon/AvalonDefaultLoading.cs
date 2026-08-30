@@ -13,7 +13,6 @@ using ICSharpCode.AvalonEdit.Editing;
 using ICSharpCode.AvalonEdit.Rendering;
 using ICSharpCode.AvalonEdit.Search;
 using TokeiLibrary;
-using TokeiLibrary.Shortcuts;
 using Utilities.Extension;
 using SearchPanel = SDE.View.Controls.SearchPanel;
 
@@ -45,10 +44,8 @@ namespace SDE.Core.Avalon {
 			_textEditor.Background = Application.Current.Resources["AvalonEditorBackground"] as Brush;
 			_textEditor.Dispatch(p => p.TextArea.SelectionCornerRadius = 0);
 			_textEditor.Dispatch(p => p.TextArea.SelectionBorder = new Pen(_textEditor.TextArea.SelectionBrush, 0));
-			_textEditor.TextArea.SelectionBrush = Application.Current.Resources["AvalonEditorSelectionBrush"] as Brush;
 			_textEditor.TextArea.SelectionBorder = new Pen(_textEditor.TextArea.SelectionBrush, 1);
-			_textEditor.TextArea.SelectionForeground = new SolidColorBrush(Colors.Black);
-			_textEditor.KeyDown += new KeyEventHandler(_textEditor_KeyDown);
+			//_textEditor.KeyDown += _textEditor_KeyDown;
 			SearchPanel panel = new SearchPanel();
 			panel.Attach(_textEditor.TextArea, _textEditor);
 
@@ -73,17 +70,63 @@ namespace SDE.Core.Avalon {
 			}
 
 			_textEditor.TextArea.TextView.BackgroundRenderers.Add(_renderer);
-			_textEditor.TextArea.KeyDown += new KeyEventHandler(_textArea_KeyDown);
+			_textEditor.TextArea.KeyDown += _textArea_KeyDown;
 			_textArea = _textEditor.TextArea;
 		}
 
-		private void _move(bool up) {
-			int lineStart = _textArea.Selection.StartPosition.Line;
-			int lineEnd = _textArea.Selection.EndPosition.Line;
+		public static readonly RoutedCommand MoveLineUp = new RoutedCommand(
+			"MoveLineUp", typeof(TextEditor),
+			new InputGestureCollection {
+				new KeyGesture(Key.Up, ModifierKeys.Alt)
+			});
+
+		public static readonly RoutedCommand MoveLineDown = new RoutedCommand(
+			"MoveLineDown", typeof(TextEditor),
+			new InputGestureCollection {
+				new KeyGesture(Key.Down, ModifierKeys.Alt)
+			});
+
+		static void OnMoveLineUp(object target, ExecutedRoutedEventArgs args) {
+			TextArea textArea = target as TextArea;
+			if (textArea != null && textArea.Document != null) {
+				_move(textArea, true);
+				args.Handled = true;
+			}
+		}
+
+		static void OnMoveLineDown(object target, ExecutedRoutedEventArgs args) {
+			TextArea textArea = target as TextArea;
+			if (textArea != null && textArea.Document != null) {
+				_move(textArea, false);
+				args.Handled = true;
+			}
+		}
+
+		private static void _move(TextArea _textArea, bool up) {
+			int lineStart;
+			int lineEnd;
+			TextLocation startL;
+			TextLocation endL;
+
 			bool reselect = true;
 
-			TextViewPosition posStart = new TextViewPosition(_textArea.Selection.StartPosition.Location);
-			TextViewPosition posEnd = new TextViewPosition(_textArea.Selection.EndPosition.Location);
+			if (_textArea.Selection.IsEmpty) {
+				lineEnd = lineStart = _textArea.Caret.Line;
+
+				startL = new TextLocation(lineStart, lineEnd);
+				endL = new TextLocation(lineStart, lineEnd);
+				reselect = false;
+			}
+			else {
+				lineStart = _textArea.Selection.StartPosition.Line;
+				lineEnd = _textArea.Selection.EndPosition.Line;
+
+				startL = _textArea.Selection.StartPosition.Location;
+				endL = _textArea.Selection.EndPosition.Location;
+			}
+
+			TextViewPosition posStart = new TextViewPosition(startL);
+			TextViewPosition posEnd = new TextViewPosition(endL);
 
 			if (_textArea.Document.GetOffset(posStart.Location) > _textArea.Document.GetOffset(posEnd.Location)) {
 				TextViewPosition t = posEnd;
@@ -103,12 +146,6 @@ namespace SDE.Core.Avalon {
 				posEnd.Line++;
 			}
 
-			if (_textArea.Selection.GetText() == "") {
-				lineStart = _textArea.Caret.Line;
-				lineEnd = _textArea.Caret.Line;
-				reselect = false;
-			}
-
 			List<DocumentLine> lines = new List<DocumentLine>();
 
 			if (up && lineStart == 1)
@@ -126,7 +163,7 @@ namespace SDE.Core.Avalon {
 				}
 
 			if (lines.Count > 0) {
-				int caretLine = _textArea.Caret.Line + (up ? - 1 : 1);
+				int caretLine = _textArea.Caret.Line + (up ? -1 : 1);
 				int caretPos = _textArea.Caret.Column;
 
 				_textArea.Selection = Selection.Create(_textArea, lines[0].Offset, lines.Last().Offset + lines.Last().TotalLength);
@@ -168,17 +205,6 @@ namespace SDE.Core.Avalon {
 
 				_textArea.Caret.BringCaretToView();
 				//_textEditor.ScrollToLine(caretLine);
-			}
-		}
-
-		private void _textEditor_KeyDown(object sender, KeyEventArgs e) {
-			if (ApplicationShortcut.Is(ApplicationShortcut.MoveLineUp)) {
-				_move(true);
-				e.Handled = true;
-			}
-			else if (ApplicationShortcut.Is(ApplicationShortcut.MoveLineDown)) {
-				_move(false);
-				e.Handled = true;
 			}
 		}
 

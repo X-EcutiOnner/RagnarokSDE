@@ -1,0 +1,318 @@
+﻿<UserControl x:Class="SDE.Databases.Mobs.Features.MobViewCsv"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:SDE.Databases.Quests.Features"
+			 xmlns:f="clr-namespace:SDE.Databases.Generic.Controls"
+             xmlns:TokeiLibrary="clr-namespace:TokeiLibrary;assembly=TokeiLibrary"
+             xmlns:ListView="clr-namespace:TokeiLibrary.WPF.Styles.ListView;assembly=TokeiLibrary"
+             xmlns:Tmc="clr-namespace:SDE.Editor.Generic.DbTabs"
+             xmlns:Converters="clr-namespace:SDE.Databases.Generic.Converters"
+			 xmlns:wpfbugfix="clr-namespace:TokeiLibrary.WpfBugFix;assembly=TokeiLibrary"
+             xmlns:Common="clr-namespace:SDE.Databases.Generic.Common"
+             xmlns:MobCommon="clr-namespace:SDE.Databases.Mobs.Common"
+			 xmlns:styles="clr-namespace:TokeiLibrary.WPF.Styles;assembly=TokeiLibrary" xmlns:controls="clr-namespace:SDE.Databases.Mobs.Controls"
+			 Foreground="{DynamicResource TextForeground}"
+			 mc:Ignorable="d" 
+			 MaxWidth="800"
+			 HorizontalAlignment="Left"
+             d:DesignWidth="800"
+			 d:DesignHeight="900">
+	<UserControl.Resources>
+		<Converters:ItemPreviewConverter x:Key="ItemPreviewConverter"/>
+		<Converters:MobPreviewConverter x:Key="MobPreviewConverter"/>
+		<Converters:ResPreviewConverter x:Key="ResPreviewConverter"/>
+		<Converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+	</UserControl.Resources>
+	<Grid x:Name="_gridContainer" IsEnabled="{Binding IsModelValid}">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="auto" />
+			<RowDefinition />
+		</Grid.RowDefinitions>
+		<Grid>
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition />
+				<ColumnDefinition Width="10" />
+				<ColumnDefinition />
+			</Grid.ColumnDefinitions>
+			<Grid.RowDefinitions>
+				<RowDefinition Height="auto" />
+				<RowDefinition Height="auto" />
+				<RowDefinition />
+			</Grid.RowDefinitions>
+			<f:HorizontalGrid x:Name="_gridGenericProperties" ColumnCount="1">
+				<f:Property Label="Mob ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Id}" VerticalAlignment="Top" >
+					<f:Property.Editor>
+						<f:ValidationTextBox IsReadOnly="True" Text="{Binding Id}" />
+					</f:Property.Editor>
+					<f:Property.Extras>
+						<f:EditKeyButton SourceField="{Binding Id}" />
+					</f:Property.Extras>
+				</f:Property>
+
+				<f:Property Label="Aegis name" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding AegisName}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding AegisName, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+					<f:Property.Extras>
+						<controls:AegisNameButton SourceField="{Binding Name}" DestinationField="{Binding AegisName}" />
+					</f:Property.Extras>
+				</f:Property>
+
+				<f:Property Label="Client sprite" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding ClientSprite}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding ClientSprite, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+					<f:Property.Extras>
+						<f:LuaTableButton />
+						<controls:ClientSpriteButton SourceField="{Binding ClientSprite}" />
+					</f:Property.Extras>
+				</f:Property>
+
+				<f:Property Label="Name" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Name}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+					<f:Property.Extras>
+						<controls:NameButton SourceField="{Binding JapaneseName}" DestinationField="{Binding Name}" />
+					</f:Property.Extras>
+				</f:Property>
+
+				<f:Property Label="jRO name" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding JapaneseName}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding JapaneseName, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding JapaneseNamePreview}" />
+					</f:Property.Editor>
+					<f:Property.Extras>
+						<controls:JapaneseNameButton SourceField="{Binding Name}" DestinationField="{Binding JapaneseName}" />
+					</f:Property.Extras>
+				</f:Property>
+			</f:HorizontalGrid>
+			<!--<f:MobSpriteImage SourceField="{Binding ClientSprite}" AliasField="{Binding AliasSprite}" Grid.Column="2" />-->
+			<ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" VerticalAlignment="Stretch" Height="{Binding Path=ActualHeight, ElementName=_gridGenericProperties}">
+				<f:MobSpriteImage SourceField="{Binding ClientSprite}" AliasField="{Binding AliasSprite}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+			</ScrollViewer>
+			<f:HorizontalGrid ColumnCount="2" Grid.Row="1" SeparatorWidth="0">
+				<f:Property Label="Level" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Level}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding Level, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Separator/>
+
+				<f:Property Label="Str" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Str}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding Str, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Agi" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Agi}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding Agi, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Vit" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Vit}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding Vit, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Int" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Int}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding Int, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Dex" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Dex}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding Dex, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Luk" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Luk}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding Luk, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Race" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Race}">
+					<f:Property.Editor>
+						<ComboBox ItemsSource="{Binding Path=(Common:RaceTypeInfo.AllVisibleOnly)}" SelectedItem="{Binding Race, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Attack range" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding AttackRange}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding AttackRange, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Size" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Size}">
+					<f:Property.Editor>
+						<ComboBox ItemsSource="{Binding Path=(Common:SizeTypeInfo.AllVisibleOnly)}" SelectedItem="{Binding Size, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Skill range" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding SkillRange}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding SkillRange, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Element" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Element}">
+					<f:Property.Editor>
+						<DockPanel>
+							<ComboBox ItemsSource="{Binding Path=(Common:ElementLevelTypeInfo.AllVisibleOnly)}" SelectedItem="{Binding ElementLevel, UpdateSourceTrigger=PropertyChanged}" Width="34" Margin="0 0 3 0" />
+							<ComboBox ItemsSource="{Binding Path=(Common:ElementTypeInfo.AllVisibleOnly)}" SelectedItem="{Binding Element, UpdateSourceTrigger=PropertyChanged}" />
+						</DockPanel>
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Chase range" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding ChaseRange}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding ChaseRange, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+			</f:HorizontalGrid>
+			<f:HorizontalGrid ColumnCount="2" Grid.Row="1" Grid.Column="2" SeparatorWidth="0">
+				<f:Property Label="HP" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Hp}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding Hp, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="SP" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Sp}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding Sp, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Exp" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding BaseExp}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding BaseExp, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Job exp" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding JobExp}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding JobExp, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Min attack" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Attack}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding Attack, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Max attack" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Attack2}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding Attack2, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Defense" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Defense}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding Defense, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="M. defense" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding MagicDefense}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding MagicDefense, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="MVP exp" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding MvpExp}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding MvpExp, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="DMotion" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding DamageMotion}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding DamageMotion, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Speed" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding WalkSpeed}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding WalkSpeed, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding WalkSpeedPreview}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="AMotion" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding AttackMotion}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding AttackMotion, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Mode" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Modes}">
+					<f:Property.Editor>
+						<f:ValidationFlagEdit Text="{Binding Modes, UpdateSourceTrigger=PropertyChanged}" SourceType="{x:Type MobCommon:ModeFlag}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="ADelay" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding AttackDelay}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding AttackDelay, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+			</f:HorizontalGrid>
+		</Grid>
+		<Grid Grid.Row="1">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="3*" />
+				<ColumnDefinition Width="3*" />
+				<ColumnDefinition Width="3*" />
+			</Grid.ColumnDefinitions>
+			<Grid.RowDefinitions>
+				<RowDefinition Height="auto" />
+				<RowDefinition />
+			</Grid.RowDefinitions>
+			
+			<TextBlock Style="{StaticResource DbTextBlock}" Text="Normal drops" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Drops}" Grid.Row="0" Grid.Column="0" FontStyle="Italic" />
+			<TextBlock Style="{StaticResource DbTextBlock}" Text="MVP drops" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding NormalDrops}" Grid.Row="0" Grid.Column="1" />
+			<TextBlock Style="{StaticResource DbTextBlock}" Text="Mob skills" Grid.Row="0" Grid.Column="2" FontStyle="Italic" />
+
+			<wpfbugfix:RangeListView x:Name="_lvDrops" Grid.Row="1" Grid.Column="0"
+				TextSearch.TextPath="Item"
+				Margin="3"
+				BorderThickness="1"
+				ListView:ListViewExtensions.IsGridSortable="True"
+				ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+				ItemsSource="{Binding Drops, UpdateSourceTrigger=PropertyChanged}"
+				IsHitTestVisible="{Binding IsModelValid}"
+				ListView:ListViewLayoutManager.Enabled="True"
+				SelectionChanged="_lvDrops_SelectionChanged"
+				FocusVisualStyle="{x:Null}">
+			</wpfbugfix:RangeListView>
+
+			<wpfbugfix:RangeListView x:Name="_lvMvpDrops" Grid.Row="1" Grid.Column="1"
+				TextSearch.TextPath="Item"
+				Margin="3"
+				BorderThickness="1"
+				ListView:ListViewExtensions.IsGridSortable="True"
+				ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+				ItemsSource="{Binding MvpDrops, UpdateSourceTrigger=PropertyChanged}"
+				IsHitTestVisible="{Binding IsModelValid}"
+				SelectionChanged="_lvMvpDrops_SelectionChanged"
+				FocusVisualStyle="{x:Null}">
+			</wpfbugfix:RangeListView>
+
+			<wpfbugfix:RangeListView x:Name="_lvMobSkills" Grid.Row="1" Grid.Column="2"
+				TextSearch.TextPath="SkillNamePreview"
+				Margin="3"
+				BorderThickness="1"
+				ListView:ListViewExtensions.IsGridSortable="True"
+				ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+				ItemsSource="{Binding MobSkills, UpdateSourceTrigger=PropertyChanged}"
+				IsHitTestVisible="{Binding IsModelValid}"
+				SelectionChanged="_lvMobSkills_SelectionChanged"
+				FocusVisualStyle="{x:Null}">
+			</wpfbugfix:RangeListView>
+		</Grid>
+	</Grid>
+</UserControl>

@@ -1,0 +1,32 @@
+﻿<UserControl x:Class="SDE.Databases.Generic.Controls.ValidationFlagEdit"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:f="clr-namespace:SDE.Databases.Generic.Controls"
+             xmlns:Converters="clr-namespace:SDE.Databases.Generic.Converters"
+             mc:Ignorable="d" d:DesignWidth="200">
+	<UserControl.Resources>
+		<Converters:FlagPreviewConverter x:Key="FlagPreviewConverter"/>
+	</UserControl.Resources>
+    <Grid>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition />
+			<ColumnDefinition Width="auto" />
+		</Grid.ColumnDefinitions>
+
+		<f:ValidationTextBox Text="{Binding Text, RelativeSource={RelativeSource AncestorType=f:ValidationFlagEdit}}">
+			<f:ValidationTextBox.PreviewText>
+				<MultiBinding Converter="{StaticResource FlagPreviewConverter}">
+					<Binding Path="Text"
+						RelativeSource="{RelativeSource AncestorType=f:ValidationFlagEdit}" />
+					<Binding Path="SourceType"
+						RelativeSource="{RelativeSource AncestorType=f:ValidationFlagEdit}" />
+				</MultiBinding>
+			</f:ValidationTextBox.PreviewText>
+		</f:ValidationTextBox>
+		<f:FlagEditButton Grid.Column="1" 
+						   SourceField="{Binding Text, RelativeSource={RelativeSource AncestorType=f:ValidationFlagEdit}}" 
+						   SourceType="{Binding SourceType, RelativeSource={RelativeSource AncestorType=f:ValidationFlagEdit}}" />
+	</Grid>
+</UserControl>

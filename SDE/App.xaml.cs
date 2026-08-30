@@ -9,13 +9,14 @@ using System.Windows.Media.Imaging;
 using ErrorManager;
 using GRF.IO;
 using GRF.Image;
-using GRF.System;
+using GRF.GrfSystem;
 using GRF.Threading;
 using GrfToWpfBridge.Application;
 using SDE.ApplicationConfiguration;
 using SDE.Editor;
 using TokeiLibrary;
 using Utilities;
+using Debug = Utilities.Debug;
 
 namespace SDE {
 	/// <summary>
@@ -149,6 +150,10 @@ namespace SDE {
 			ImageConverterManager.AddConverter(new DefaultImageConverter());
 			Configuration.SetImageRendering(Resources);
 
+			ApplicationManager.ThemeChanged += delegate {
+				Debug.Ignore(() => AppContext.SetSwitch("Switch.System.Windows.Controls.Text.UseAdornerForTextboxSelectionRendering", SdeAppConfiguration.ThemeIndex == 0));
+			};
+
 			Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/" + Assembly.GetEntryAssembly().GetName().Name.Replace(" ", "%20") + ";component/WPF/Styles/GRFEditorStyles.xaml", UriKind.RelativeOrAbsolute) });
 
 			if (SdeAppConfiguration.ThemeIndex == 0) {
@@ -185,6 +190,8 @@ namespace SDE {
 
 					return img;
 				};
+
+				Debug.Ignore(() => AppContext.SetSwitch("Switch.System.Windows.Controls.Text.UseAdornerForTextboxSelectionRendering", false));
 			}
 
 			if (!Methods.IsWinVistaOrHigher() && Methods.IsWinXPOrHigher()) {

@@ -1,23 +1,17 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using GRF;
 using GRF.IO;
-using GRF.System;
+using GRF.GrfSystem;
 using GRF.Threading;
 using SDE.Tools.SDEMapcache.Commands;
 using TokeiLibrary.WPF;
-using Utilities.Extension;
 
 namespace SDE.Tools.SDEMapcache {
 	public class Mapcache : IProgress {
-		static Mapcache() {
-			TemporaryFilesManager.UniquePattern(Process.GetCurrentProcess().Id + "_mapcache_{0:0000}.dat");
-		}
-
 		public CommandsHolder Commands { get; private set; }
 
 		public string LoadedPath { get; set; }

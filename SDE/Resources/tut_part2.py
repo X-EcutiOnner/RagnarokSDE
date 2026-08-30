@@ -10,9 +10,10 @@
 
 if (selection.Count == 0):
 	script.throw("Please select an item in the tab!")
-	
+
+# tuple[2] is usually the display binding value
 for tuple in selection:
-	print script.format("#{0}, {1}, {2}", tuple[0], tuple[1], tuple[2])
+	print script.format("#{0}, {1}, {2}", tuple["Id"], tuple["model"], tuple[2])
 
 # The above will bring up the console output and show you the result.
 # selection contains the items selected.
@@ -26,7 +27,7 @@ if (selected_db != item_db):
 # To read the values of the table, simply iterate through it like a list.
 
 for tuple in selected_db:
-	print "Id = " + str(tuple[0])
+	print "Id = " + str(tuple.Key)
 	
 # This is the same as 
 
@@ -38,12 +39,13 @@ for tuple in item_db:
 selection.Clear()
 for x in range(500, 561): # 561 is not included
 	if (selected_db.ContainsKey(x)):
-		selection.Add(selected_db[x])
+		selection.Add(selected_db.GetTuple(x))
 		
-# Or if you want to select all the potion items...¸
+# Or if you want to select all the potion items...쨍
 
 selection.Clear()
 for tuple in item_db: # 561 is not included
-	if ("Potion" in tuple["name"]):
+	#print "Id = " + str(tuple.Key)
+	if ("Potion" in tuple["Name"]):
 		selection.Add(tuple)
 		

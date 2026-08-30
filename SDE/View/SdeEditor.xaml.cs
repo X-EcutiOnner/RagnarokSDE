@@ -3,30 +3,29 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Threading;
 using Database;
 using ErrorManager;
-using GRF.FileFormats.GndFormat;
+using GRF.Core.GroupedGrf;
 using GRF.Image;
 using GRF.IO;
 using GRF.Threading;
 using GrfToWpfBridge;
 using GrfToWpfBridge.Application;
+using Microsoft.Scripting.Utils;
 using SDE.ApplicationConfiguration;
+using SDE.Databases;
+using SDE.Databases.ClientItems.Features;
 using SDE.Editor;
-using SDE.Editor.Engines.DatabaseEngine;
-using SDE.Editor.Engines.TabNavigationEngine;
-using SDE.Editor.Generic;
-using SDE.Editor.Generic.Core;
-using SDE.Editor.Generic.Lists;
+using SDE.Editor.Database;
+using SDE.Editor.Database.Commands;
 using SDE.Editor.Generic.Parsers.Generic;
-using SDE.Editor.Generic.TabsMakerCore;
+using SDE.Editor.Generic.DbTabs;
+using SDE.Editor.Navigation;
 using SDE.Tools.SDEMapcache;
 using SDE.View.Controls;
 using SDE.View.Dialogs;
@@ -38,25 +37,26 @@ using TokeiLibrary.WPF.Styles.ListView;
 using TokeiLibrary.WpfBugFix;
 using Utilities;
 using Utilities.CommandLine;
-using Utilities.Commands;
+using Utilities.Services;
+using Lua;
 
 namespace SDE.View {
 	/// <summary>
 	/// Interaction logic for CDEditor.xaml
 	/// </summary>
-	public partial class SdeEditor : TkWindow, IProgress, Editor.Generic.Parsers.Generic.IErrorListener {
-		public readonly List<GDbTab> GdTabs = new List<GDbTab>();
+	public partial class SdeEditor : TkWindow, IProgress, IErrorListener {
+		public readonly List<DbTab> GdTabs = new List<DbTab>();
 		internal readonly AsyncOperation _asyncOperation;
-		private readonly SdeDatabase _clientDatabase;
-		private readonly ObservableCollection<DebugItemView> _debugItems;
+		private readonly ProjectManager _sdb;
 		private DbHolder _holder;
-		private TabNavigation _tabEngine;
+		private TabNavigation _tabNavigation;
 		public static SdeEditor Instance;
 		public bool NoErrorsFound { get; set; }
+		private EditorPosition _editorPosition = new EditorPosition();
+		public int ErrorCount => _errorConsole.ErrorCount;
 
-		public SdeDatabase ProjectDatabase {
-			get { return _clientDatabase; }
-		}
+		public static ProjectManager Project;
+		public static MultiGrfReader MetaGrf => Project.MetaGrf;
 
 		public SdeEditor() : base("Server database editor", "cde.ico", SizeToContent.Manual, ResizeMode.CanResize) {
 			_parseCommandLineArguments(true);
@@ -79,17 +79,17 @@ namespace SDE.View {
 			string configFile = _parseCommandLineArguments();
 			GrfPath.Delete(ProjectConfiguration.DefaultFileName);
 
-			if (SdeAppConfiguration.ThemeIndex == 1) {	
-				UIElement.IsEnabledProperty.OverrideMetadata(typeof(RangeListView), new UIPropertyMetadata(true, List_IsEnabledChanged, CoerceIsEnabled));
-				UIElement.IsEnabledProperty.OverrideMetadata(typeof(ListView), new UIPropertyMetadata(true, List_IsEnabledChanged, CoerceIsEnabled));
-			}
+			UIElement.IsEnabledProperty.OverrideMetadata(typeof(RangeListView), new UIPropertyMetadata(true, List_IsEnabledChanged, CoerceIsEnabled));
+			UIElement.IsEnabledProperty.OverrideMetadata(typeof(ListView), new UIPropertyMetadata(true, List_IsEnabledChanged, CoerceIsEnabled));
 
 			InitializeComponent();
 			Instance = this;
 			ShowInTaskbar = true;
 
 			_asyncOperation = new AsyncOperation(_progressBar);
-			_clientDatabase = new SdeDatabase(_metaGrf);
+			_sdb = new ProjectManager(_metaGrf);
+			Project = _sdb;
+
 			_loadMenu();
 			
 			if (configFile == null) {
@@ -109,114 +109,106 @@ namespace SDE.View {
 			if (configFile != null) { ReloadSettings(configFile); }
 			_loadGenericTab();
 
-			_clientDatabase.Commands.ModifiedStateChanged += new AbstractCommand<IGenericDbCommand>.AbstractCommandsEventHandler(_commands_ModifiedStateChanged);
+			_sdb.Commands.ModifiedStateChanged += _commands_ModifiedStateChanged;
 
-			ApplicationShortcut.Link(ApplicationShortcut.Undo, () => _clientDatabase.Commands.Undo(), this);
-			ApplicationShortcut.Link(ApplicationShortcut.UndoGlobal, () => _clientDatabase.Commands.Undo(), this);
-			ApplicationShortcut.Link(ApplicationShortcut.Redo, () => _clientDatabase.Commands.Redo(), this);
-			ApplicationShortcut.Link(ApplicationShortcut.RedoGlobal, () => _clientDatabase.Commands.Redo(), this);
-			ApplicationShortcut.Link(ApplicationShortcut.Search, () => _execute(v => v.Search()), this);
-			ApplicationShortcut.Link(ApplicationShortcut.Delete, () => _execute(v => v.DeleteItems()), this);
-			ApplicationShortcut.Link(ApplicationShortcut.Rename, () => _execute(v => v.ChangeId()), this);
-			ApplicationShortcut.Link(ApplicationShortcut.NavigationBackward, () => _tabEngine.Undo(), this);
-			ApplicationShortcut.Link(ApplicationShortcut.NavigationBackward2, () => _tabEngine.Redo(), this);
-			ApplicationShortcut.Link(ApplicationShortcut.NavigationForward, () => _tabEngine.Redo(), this);
-			ApplicationShortcut.Link(ApplicationShortcut.Change, () => _execute(v => v.ChangeId()), this);
-			ApplicationShortcut.Link(ApplicationShortcut.Restrict, () => _execute(v => v.ShowSelectedOnly()), this);
-			ApplicationShortcut.Link(ApplicationShortcut.CopyTo, () => _execute(v => v.CopyItemTo()), this);
-			ApplicationShortcut.Link(ApplicationShortcut.New, () => _execute(v => v.AddNewItem()), this);
-			ApplicationShortcut.Link(ApplicationShortcut.Save, () => _menuItemDatabaseSave_Click(this, null), this);
-			ApplicationShortcut.Link(ApplicationShortcut.Replace, () => { if (_menuItemReplaceAll.IsEnabled) _menuItemReplaceAll_Click(this, null); }, this);
-			ApplicationShortcut.Link(ApplicationShortcut.FromString("Ctrl-Enter", "Select next entry"), () => _execute(v => v.SelectNext()), this);
-			ApplicationShortcut.Link(ApplicationShortcut.FromString("Ctrl-Shift-Enter", "Select previous entry"), () => _execute(v => v.SelectPrevious()), this);
+			ApplicationShortcut.Link(SdeCommands.Undo, () => _sdb.Commands.Undo(), this);
+			ApplicationShortcut.Link(SdeCommands.UndoGlobal, () => _sdb.Commands.Undo(), this);
+			ApplicationShortcut.Link(SdeCommands.Redo, () => _sdb.Commands.Redo(), this);
+			ApplicationShortcut.Link(SdeCommands.RedoGlobal, () => _sdb.Commands.Redo(), this);
+			ApplicationShortcut.Link(SdeCommands.Search, () => _execute(v => v.Search()), this);
+			ApplicationShortcut.Link(SdeCommands.Delete, () => _execute(v => v.Commands.DeleteItems()), this);
+			ApplicationShortcut.Link(SdeCommands.Rename, () => _execute(v => v.Commands.ChangeId()), this);
+			ApplicationShortcut.Link(SdeCommands.NavigationBackward, () => _tabNavigation.Undo(), this);
+			ApplicationShortcut.Link(SdeCommands.NavigationForward, () => _tabNavigation.Redo(), this);
+			ApplicationShortcut.Link(SdeCommands.Change, () => _execute(v => v.Commands.ChangeId()), this);
+			ApplicationShortcut.Link(SdeCommands.Restrict, () => _execute(v => v.Commands.ShowSelectedOnly()), this);
+			ApplicationShortcut.Link(SdeCommands.CopyTo, () => _execute(v => v.Commands.CopyItemTo()), this);
+			ApplicationShortcut.Link(SdeCommands.Save, () => _menuItemDatabaseSave_Click(this, null), this);
+			ApplicationShortcut.Link(SdeCommands.DbFocusNextEntry, () => _execute(v => v.SelectNext()), this);
+			ApplicationShortcut.Link(SdeCommands.DbFocusPreviousEntry, () => _execute(v => v.SelectPrevious()), this);
+
+			ApplicationShortcut.Link(SdeCommands.DbReload, _menuItemReload, this);
+			ApplicationShortcut.Link(SdeCommands.Replace, _menuItemReplaceAll, this);
+			ApplicationShortcut.Link(SdeCommands.DbCopyAll, _menuItemCopyAll, this);
+			ApplicationShortcut.Link(SdeCommands.DbAdd, _menuItemAddItem, this);
+			ApplicationShortcut.Link(SdeCommands.DbAddRange, _menuItemAddItemRage, this);
+			ApplicationShortcut.Link(SdeCommands.DbAddRaw, _menuItemAddItemRaw, this);
+			ApplicationShortcut.Link(SdeCommands.DbChangeId, _menuItemChangeId, this);
+			ApplicationShortcut.Link(SdeCommands.DbCopyItemTo, _menuItemCopyItemTo, this);
+			ApplicationShortcut.Link(SdeCommands.DbDelete, _menuItemDeleteItem, this);
+
+			PreviewMouseUp += _sdeEditor_PreviewMouseUp;
+
 			Configuration.EnableDebuggerTrace = false;
 			
-			_tnbUndo.SetUndo(_tabEngine);
-			_tnbRedo.SetRedo(_tabEngine);
+			_tnbUndo.SetUndo(_tabNavigation);
+			_tnbRedo.SetRedo(_tabNavigation);
 			
-			_tmbUndo.SetUndo(_clientDatabase.Commands);
-			_tmbRedo.SetRedo(_clientDatabase.Commands);
-
-			ListViewDataTemplateHelper.GenerateListViewTemplateNew(_debugList, new ListViewDataTemplateHelper.GeneralColumnInfo[] {
-				new ListViewDataTemplateHelper.GeneralColumnInfo { Header = "#", DisplayExpression = "ErrorNumber", SearchGetAccessor = "ErrorNumber", FixedWidth = 35, ToolTipBinding = "ErrorNumber", TextAlignment = TextAlignment.Right },
-				new ListViewDataTemplateHelper.ImageColumnInfo { Header = "", DisplayExpression = "DataImage", SearchGetAccessor = "Exception", FixedWidth = 20, MaxHeight = 24 },
-				new ListViewDataTemplateHelper.RangeColumnInfo { Header = "Exception", DisplayExpression = "Exception", SearchGetAccessor = "Exception", IsFill = true, TextAlignment = TextAlignment.Left, ToolTipBinding="OriginalException", TextWrapping = TextWrapping.Wrap, MinWidth = 120 },
-				new ListViewDataTemplateHelper.GeneralColumnInfo { Header = "Id", DisplayExpression = "Id", SearchGetAccessor = "Id", FixedWidth = 90, TextAlignment = TextAlignment.Left, ToolTipBinding="Id", TextWrapping = TextWrapping.Wrap },
-				new ListViewDataTemplateHelper.GeneralColumnInfo { Header = "File", DisplayExpression = "FileName", SearchGetAccessor = "FilePath", FixedWidth = 145, TextAlignment = TextAlignment.Left, ToolTipBinding="FilePath", TextWrapping = TextWrapping.Wrap },
-				new ListViewDataTemplateHelper.GeneralColumnInfo { Header = "Line", DisplayExpression = "Line", SearchGetAccessor = "Line", FixedWidth = 40, TextAlignment = TextAlignment.Left, ToolTipBinding="Line" },
-			}, null, new string[] { "Default", "{DynamicResource TextForeground}" });
-
-			ApplicationShortcut.Link(ApplicationShortcut.Copy, () => WpfUtils.CopyContent(_debugList), _debugList);
-
-			_debugItems = new ObservableCollection<DebugItemView>();
-			_debugList.ItemsSource = _debugItems;
+			_tmbUndo.SetUndo(_sdb.Commands);
+			_tmbRedo.SetRedo(_sdb.Commands);
 
 			DbIOErrorHandler.ClearListeners();
 			DbIOErrorHandler.AddListener(this);
 
-			_clientDatabase.PreviewReloaded += delegate {
+			_sdb.PreviewReloaded += delegate {
 				this.BeginDispatch(delegate {
 					foreach (TabItem tabItem in _mainTabControl.Items) {
 						tabItem.IsEnabled = true;
 
 						var tabItemHeader = tabItem.Header as DisplayLabel;
-
-						if (tabItemHeader != null)
-							tabItemHeader.ResetEnabled();
+						tabItemHeader?.ResetEnabled();
 					}
 				});
 			};
 
-			_clientDatabase.Reloaded += delegate {
+			_sdb.Reloaded += delegate {
 				_mainTabControl.Dispatch(p => p.RaiseEvent(new SelectionChangedEventArgs(Selector.SelectionChangedEvent, new List<object>(), _mainTabControl.SelectedItem == null ? new List<object>() : new List<object> { _mainTabControl.SelectedItem })));
-				ServerType serverType = DbPathLocator.GetServerType();
-				bool renewal = DbPathLocator.GetIsRenewal();
-				string header = String.Format("Current ({0} - {1})", serverType == ServerType.RAthena ? "rA" : "Herc", renewal ? "Renewal" : "Pre-Renewal");
+				//ServerType serverType = DbPathLocator.GetServerType();
+				//bool renewal = DbPathLocator.GetIsRenewal();
+				//string header = String.Format("Current ({0} - {1})", serverType == ServerType.RAthena ? "rA" : "Herc", renewal ? "Renewal" : "Pre-Renewal");
 
-				this.BeginDispatch(delegate {
-					_menuItemExportDbCurrent.IsEnabled = true;
-					_menuItemExportDbCurrent.Header = header;
-
-					_menuItemExportSqlCurrent.IsEnabled = true;
-					_menuItemExportSqlCurrent.Header = header;
-				});
+				//this.BeginDispatch(delegate {
+				//	_menuItemExportDbCurrent.IsEnabled = true;
+				//	_menuItemExportDbCurrent.Header = header;
+				//
+				//	_menuItemExportSqlCurrent.IsEnabled = true;
+				//	_menuItemExportSqlCurrent.Header = header;
+				//});
 			};
 
 			SelectionChanged += _sdeEditor_SelectionChanged;
+
+			_editorPosition.Load(this);
 		}
 
+		private void _sdeEditor_PreviewMouseUp(object sender, MouseButtonEventArgs e) {
+			if (e.ChangedButton == MouseButton.XButton1) {
+				ApplicationShortcut.ExecuteCommand(SdeCommands.NavigationBackward, this);
+			}
+			else if (e.ChangedButton == MouseButton.XButton2) {
+				ApplicationShortcut.ExecuteCommand(SdeCommands.NavigationForward, this);
+			}
+		}
+
+		private static WeakDictionary<ListView, bool> _fixed = new WeakDictionary<ListView, bool>();
 		private static void List_IsEnabledChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) {
-			var childrenCount = VisualTreeHelper.GetChildrenCount(d);
-			for (int i = 0; i < childrenCount; ++i) {
-				var child = VisualTreeHelper.GetChild(d, i);
-				child.CoerceValue(UIElement.IsEnabledProperty);
+			var lv = d as ListView;
+
+			if (lv != null) {
+				if (_fixed.ContainsKey(lv))
+					return;
+
+				_fixed[lv] = true;
+				Core.Extensions.FixDarkThemeListView(lv);
 			}
 		}
 
 		private static object CoerceIsEnabled(DependencyObject d, object basevalue) {
-			var parent = VisualTreeHelper.GetParent(d) as FrameworkElement;
-			if (parent != null && parent.IsEnabled == false) {
-				if (d.ReadLocalValue(UIElement.IsEnabledProperty) == DependencyProperty.UnsetValue) {
-					return true;
-				}
-			}
-			return true;
+			return basevalue;
 		}
 
-		//private void watcher_Created(object sender, FileSystemEventArgs e) {
-		//	if (e.FullPath.Contains("CETRAINER")) {
-		//		File.Copy(e.FullPath, "C:\\test.cetrainer");
-		//	}
-		//	Console.WriteLine(e.FullPath);
-		//}
-
-		public AsyncOperation AsyncOperation {
-			get { return _asyncOperation; }
-		}
-
-		public List<GDbTab> Tabs {
-			get { return GdTabs; }
-		}
+		public AsyncOperation AsyncOperation => _asyncOperation;
+		public List<DbTab> Tabs => GdTabs;
 
 		#region IErrorListener Members
 
@@ -229,7 +221,7 @@ namespace SDE.View {
 				if (_mainTabControl.SelectedIndex != 1 && ((TabItem)_mainTabControl.Items[1]).Header.ToString() != "Error console *")
 					((TabItem)_mainTabControl.Items[1]).Header = new DisplayLabel { DisplayText = "Error console *", FontWeight = FontWeights.Bold };
 
-				_debugItems.Add(new DebugItemView(err, _debugItems.Count + 1, exception, errorLevel));
+				_errorConsole.AddError(err, exception, errorLevel);
 			}), DispatcherPriority.Background);
 		}
 
@@ -274,7 +266,7 @@ namespace SDE.View {
 		}
 
 		private void _commands_ModifiedStateChanged(object sender, IGenericDbCommand command) {
-			_setTitle(Methods.CutFileName(ProjectConfiguration.ConfigAsker.ConfigFile), _clientDatabase.IsModified);
+			_setTitle(Methods.CutFileName(ProjectConfiguration.ConfigAsker.ConfigFile), _sdb.IsModified);
 		}
 
 		private void _setTitle(string name, bool isModified) {
@@ -288,28 +280,18 @@ namespace SDE.View {
 				ProjectConfiguration.ConfigAsker.IsAutomaticSaveEnabled = false;
 
 				_holder = new DbHolder();
-#if SDE_DEBUG
-				CLHelper.WA = "_CPInstantiate database";
-#endif
-				_holder.Instantiate(_clientDatabase);
-#if SDE_DEBUG
-				CLHelper.WL = " : _CS_CDms";
-#endif
+				_holder.Instantiate(_sdb);
 				GdTabs.AddRange(_holder.GetTabs(_mainTabControl));
 
-				foreach (var tab in _clientDatabase.AllTables) {
+				foreach (var tab in _sdb.AllTables) {
+					if (tab.Value.DoNotLoadInEditor)
+						continue;
+
 					var copy = tab.Value;
 
-					if (copy is AbstractDb<int>) {
-						AbstractDb<int> db = (AbstractDb<int>)copy;
-						db.Table.Commands.CommandIndexChanged += (e, a) => UpdateTabHeader(db);
-						db.Table.Commands.ModifiedStateChanged += (e, a) => UpdateTabHeader(db);
-					}
-					else if (copy is AbstractDb<string>) {
-						AbstractDb<string> db = (AbstractDb<string>)copy;
-						db.Table.Commands.CommandIndexChanged += (e, a) => UpdateTabHeader(db);
-						db.Table.Commands.ModifiedStateChanged += (e, a) => UpdateTabHeader(db);
-					}
+					BaseDatabase db = copy;
+					db.Table.Commands.CommandIndexChanged += (e, a) => UpdateTabHeader(db);
+					db.Table.Commands.ModifiedStateChanged += (e, a) => UpdateTabHeader(db);
 				}
 
 				foreach (var tab in GdTabs) {
@@ -317,13 +299,13 @@ namespace SDE.View {
 					copy._listView.SelectionChanged += delegate(object sender, SelectionChangedEventArgs args) {
 						if (sender is ListView) {
 							ListView view = (ListView)sender;
-							_tabEngine.StoreAndExecute(new SelectionChanged(copy.Header.ToString(), view.SelectedItem, view, copy));
+							_tabNavigation.StoreAndExecute(new SelectionChangedCommand(copy.Header.ToString(), view.SelectedItem, view, copy));
 						}
 					};
 				}
 
-				foreach (GDbTab tab in GdTabs) {
-					GDbTab tabCopy = tab;
+				foreach (DbTab tab in GdTabs) {
+					DbTab tabCopy = tab;
 					_mainTabControl.Items.Insert(_mainTabControl.Items.Count, tabCopy);
 				}
 			}
@@ -332,21 +314,21 @@ namespace SDE.View {
 			}
 		}
 
-		public void UpdateTabHeader<TKey>(AbstractDb<TKey> db) {
-			Table<TKey, ReadableTuple<TKey>> table = db.Table;
+		public void UpdateTabHeader(BaseDatabase db) {
+			Table<int, ReadableTuple> table = db.Table;
 
 			if (table != null) {
-				string header = db.DbSource.IsImport ? "imp" : db.DbSource.DisplayName;
+				string header = db.Source.IsImport ? "imp" : db.Source.DisplayName;
 
 				if (table.Commands.IsModified) {
 					header += " *";
 				}
 
 				this.BeginDispatch(delegate {
-					var gdt = _mainTabControl.Items.OfType<GDbTabWrapper<TKey, ReadableTuple<TKey>>>().FirstOrDefault(p => p.Header.ToString() == db.DbSource.Filename);
+					var gdt = _mainTabControl.Items.OfType<DbTab>().FirstOrDefault(p => p.Header.ToString() == db.Source.UidName);
 
 					if (gdt != null) {
-						((DisplayLabel) gdt.Header).Content = header;
+						((DisplayLabel) gdt.Header).Text = header;
 					}
 				});
 			}
@@ -406,7 +388,7 @@ namespace SDE.View {
 			SdeSelectionChangedEventHandler handler = SelectionChanged;
 			TabItem olditem = _mainTabControl.SelectedItem as TabItem;
 			TabItem newitem = _mainTabControl.SelectedItem as TabItem;
-			if (handler != null) handler(this, olditem, newitem);
+			handler?.Invoke(this, olditem, newitem);
 		}
 
 		public void OnSelectionChanged(TabItem olditem, TabItem newitem) {
@@ -414,42 +396,42 @@ namespace SDE.View {
 			olditem = olditem ?? _mainTabControl.SelectedItem as TabItem;
 			newitem = newitem ?? _mainTabControl.SelectedItem as TabItem;
 			if (ReferenceEquals(olditem, newitem)) return;
-			if (handler != null) handler(this, olditem, newitem);
+			handler?.Invoke(this, olditem, newitem);
 		}
 
 		public void Update() {
 			_execute(v => v.Update());
 		}
 
-		public GDbTab FindTopmostTab() {
+		public DbTab FindTopmostTab() {
 			var window = WpfUtilities.TopWindow;
 			if (window == null) return null;
 
-			GDbTab tab = null;
+			DbTab tab = null;
 
-			if (window.Tag is GDbTab) {
-				return window.Tag as GDbTab;
+			if (window.Tag is DbTab) {
+				return window.Tag as DbTab;
 			}
 
-			if ((_mainTabControl.SelectedIndex >= 0 && _mainTabControl.Items[_mainTabControl.SelectedIndex] is GDbTab) || (tab != null)) {
-				return (GDbTab)_mainTabControl.Items[_mainTabControl.SelectedIndex];
+			if ((_mainTabControl.SelectedIndex >= 0 && _mainTabControl.Items[_mainTabControl.SelectedIndex] is DbTab) || (tab != null)) {
+				return (DbTab)_mainTabControl.Items[_mainTabControl.SelectedIndex];
 			}
 
 			return null;
 		}
 
-		private void _execute(Action<GDbTab> func) {
+		private void _execute(Action<DbTab> func) {
 			var window = WpfUtilities.TopWindow;
 			if (window == null) return;
 
-			GDbTab tab = null;
+			DbTab tab = null;
 
-			if (window.Tag is GDbTab) {
-				tab = window.Tag as GDbTab;
+			if (window.Tag is DbTab) {
+				tab = window.Tag as DbTab;
 			}
 
-			if ((_mainTabControl.SelectedIndex >= 0 && _mainTabControl.Items[_mainTabControl.SelectedIndex] is GDbTab) || (tab != null)) {
-				tab = tab ?? (GDbTab)_mainTabControl.Items[_mainTabControl.SelectedIndex];
+			if ((_mainTabControl.SelectedIndex >= 0 && _mainTabControl.Items[_mainTabControl.SelectedIndex] is DbTab) || (tab != null)) {
+				tab = tab ?? (DbTab)_mainTabControl.Items[_mainTabControl.SelectedIndex];
 
 				try {
 					func(tab);
@@ -460,21 +442,14 @@ namespace SDE.View {
 			}
 		}
 
-		public void SetRange(List<int> selectedIds) {
-			_execute(v => v.SetRange(selectedIds));
-		}
-
-		public void SelectItems(List<Database.Tuple> items) {
-			_execute(v => v.SelectItems(items));
-		}
-
 		private bool _isClientSyncConvert() {
 			return ProjectConfiguration.SynchronizeWithClientDatabases;
 		}
 
 		private void _exportImages(string grfpath, int mode) {
-			_execute(delegate(GDbTab tab) {
-				if (tab.DbComponent.DbSource != ServerDbs.ClientItems)
+			_execute(tab => {
+				// 
+				if (tab.Database.Source != DataSources.ClientItem)
 					throw new Exception("This feature can only be used on the Client Items tab.");
 
 				string extractionPath = PathRequest.FolderExtractDb();
@@ -482,13 +457,13 @@ namespace SDE.View {
 				if (extractionPath == null)
 					return;
 
-				var selector = tab._listView.SelectedItems.Count > 0 ? tab._listView.SelectedItems : tab._listView.Items;
+				var selector = (tab.ListView.SelectedItems.Count > 0 ? tab.ListView.SelectedItems : tab.ListView.Items).Cast<ReadableTuple>().ToList();
 				Exception exception = null;
 				
-				foreach (var tuple in selector.Cast<ReadableTuple<int>>()) {
-					var resourceName = tuple.GetValue<string>(ClientItemAttributes.IdentifiedResourceName);
+				foreach (var tuple in selector) {
+					var resourceName = tuple.GetModel<ClientItem>().IdentifiedResourceName ?? "";
 					var resourcePath = GrfPath.Combine(grfpath, resourceName + ".bmp");
-					var data = ProjectDatabase.MetaGrf.GetData(resourcePath);
+					var data = Project.MetaGrf.GetData(resourcePath);
 				
 					if (data != null) {
 						try {
@@ -498,12 +473,11 @@ namespace SDE.View {
 							image.MakeFirstPixelTransparent();
 							
 							if (mode == 0) {
-								image.MakePinkTransparent();
+								image.MakePinkShadeTransparent();
 							}
 							
 							image.Convert(GrfImageType.Bgra32);
 							image.Save(GrfPath.Combine(extractionPath, id + ".png"));
-							image.Close();
 						}
 						catch (Exception err) {
 							exception = new Exception("Failed to decompress image for item id: " + tuple.Key, err);
@@ -519,105 +493,6 @@ namespace SDE.View {
 		}
 
 		private void _menuItemInventoryExport_Click(object sender, RoutedEventArgs e) {
-			//try {
-			//	LuaReader reader = new LuaReader(@"C:\skillinfolist.lub");
-			//	StringBuilder output = new StringBuilder();
-			//
-			//	var dico = reader.ReadAll();
-			//	var list = (LuaList)(((LuaKeyValue)dico.Variables[0]).Value);
-			//	var dicoSp = new Dictionary<string, string>();
-			//	var dicoRange = new Dictionary<string, string>();
-			//
-			//	foreach (var entry in list.Variables) {
-			//		var keyValue = (LuaKeyValue)entry;
-			//		var key = keyValue.Key.Trim('[', ']').Replace("SKID.", "");
-			//
-			//		var skillInfo = (LuaList)keyValue.Value;
-			//		dicoSp[key] = "";
-			//		dicoRange[key] = "";
-			//
-			//		foreach (var skillEntryInfo in skillInfo.Variables.OfType<LuaKeyValue>()) {
-			//			if (skillEntryInfo.Key == "SpAmount") {
-			//				dicoSp[key] = Methods.Aggregate(((LuaList)skillEntryInfo.Value).Variables.OfType<LuaValue>().Select(p => p.Value).ToList(), ":");
-			//			}
-			//
-			//			if (skillEntryInfo.Key == "AttackRange") {
-			//				dicoRange[key] = Methods.Aggregate(((LuaList)skillEntryInfo.Value).Variables.OfType<LuaValue>().Select(p => p.Value).ToList(), ":");
-			//			}
-			//		}
-			//	}
-			//
-			//	var skillRequirementDb = ProjectDatabase.GetTable<int>(ServerDbs.SkillsRequirement);
-			//	var skillDb = ProjectDatabase.GetTable<int>(ServerDbs.Skills);
-			//
-			//	foreach (var entry in skillRequirementDb) {
-			//		var spCost = entry.GetValue<string>(ServerSkillRequirementsAttributes.SpCost) ?? "";
-			//
-			//		int skillId = entry.Key;
-			//
-			//		var entrySkillDb = skillDb.TryGetTuple(skillId);
-			//
-			//		if (entrySkillDb == null)
-			//			continue;
-			//
-			//		int maxLevel = entrySkillDb.GetValue<int>(ServerSkillAttributes.MaxLevel);
-			//		string skillKeyName = entrySkillDb.GetValue<string>(ServerSkillAttributes.Name).Trim('\t', ' ');
-			//
-			//		if (!dicoSp.ContainsKey(skillKeyName))
-			//			continue;
-			//
-			//		var valueskRO = dicoSp[skillKeyName].Split(new char[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
-			//
-			//		string[] values = spCost.Split(new char[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
-			//
-			//		if (valueskRO.Length > maxLevel) {
-			//			output.AppendLine(skillKeyName + ": Skill level mismatch, rA: " + maxLevel + ", kRO: " + valueskRO.Length);
-			//			maxLevel = valueskRO.Length;
-			//		}
-			//
-			//		int[] spCostValuesrA = new int[maxLevel];
-			//		int[] spCostValueskRO = new int[maxLevel];
-			//
-			//		for (int i = 0; i < maxLevel; i++) {
-			//			if (i < values.Length) {
-			//				spCostValuesrA[i] = Int32.Parse(values[i]);
-			//			}
-			//			else {
-			//				if (i == 0)
-			//					spCostValuesrA[i] = 0;
-			//				else
-			//					spCostValuesrA[i] = spCostValuesrA[i - 1];
-			//			}
-			//
-			//			if (i < valueskRO.Length) {
-			//				spCostValueskRO[i] = Int32.Parse(valueskRO[i]);
-			//			}
-			//			else {
-			//				if (i == 0)
-			//					spCostValueskRO[i] = 0;
-			//				else
-			//					spCostValueskRO[i] = spCostValueskRO[i - 1];
-			//			}
-			//		}
-			//
-			//		for (int i = 0; i < maxLevel; i++) {
-			//			if (spCostValueskRO[i] != spCostValuesrA[i]) {
-			//				output.AppendLine(skillKeyName + ": SP cost mismatch, rA:\t" + spCost + ", kRO:\t" + dicoSp[skillKeyName]);
-			//				break;
-			//			}
-			//		}
-			//	}
-			//
-			//	Z.F();
-			//	//foreach (var entry in res) {
-			//	//	string key = entry.Key;
-			//	//	LuaList list = entry.Value;
-			//	//}
-			//}
-			//catch (Exception err) {
-			//	ErrorHandler.HandleException(err);
-			//}
-
 			_exportImages(@"data\texture\À¯ÀúÀÎÅÍÆäÀÌ½º\item\", 0);
 		}
 

@@ -1,0 +1,53 @@
+﻿<UserControl x:Class="SDE.Databases.Generic.Controls.ValidationTextBox"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:SDE.Databases.Generic.Controls"
+			 xmlns:Converters="clr-namespace:SDE.Databases.Generic.Converters"
+			 mc:Ignorable="d" 
+			 x:Name="Root" d:DesignWidth="150"
+			 MinHeight="22" MaxHeight="22">
+	<UserControl.Resources>
+		<Converters:FirstValidationErrorConverter x:Key="FirstErrorConverter" />
+		
+		<Style TargetType="Image">
+			<Setter Property="Width" Value="16" />
+			<Setter Property="Height" Value="16" />
+			<Setter Property="Cursor" Value="Hand" />
+			<Setter Property="Stretch" Value="None" />
+			<Setter Property="Margin" Value="0 0 3 0" />
+			<Setter Property="Visibility" Value="Collapsed" />
+			<Setter Property="ToolTipService.InitialShowDelay" Value="0" />
+			<Setter Property="ToolTipService.ShowDuration" Value="600000" />
+
+			<Style.Triggers>
+				<DataTrigger Binding="{Binding Path=(Validation.HasError), RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+					<Setter Property="ToolTip" Value="{Binding Path=(Validation.Errors), RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource FirstErrorConverter}}" />
+					<Setter Property="Visibility" Value="Visible" />
+				</DataTrigger>
+			</Style.Triggers>
+		</Style>
+	</UserControl.Resources>
+	<Grid FocusVisualStyle="{x:Null}">
+		<TextBox x:Name="_tbData" Text="{Binding Text, ElementName=Root, UpdateSourceTrigger=PropertyChanged}"
+				 IsReadOnly="{Binding IsReadOnly, ElementName=Root}"
+				 TextAlignment="{Binding TextAlignment, ElementName=Root}"
+				 TextWrapping="{Binding TextWrapping, ElementName=Root}"
+				 VerticalContentAlignment="{Binding BoxVerticalAlignment, ElementName=Root}"
+				 FocusVisualStyle="{x:Null}" />
+		<TextBox x:Name="_tbPreview" IsHitTestVisible="False" Foreground="DarkGray" 
+				BorderBrush="Transparent"
+				Text="{Binding PreviewText, ElementName=Root}" 
+				IsReadOnly="True"
+				Background="Transparent"
+				FocusVisualStyle="{x:Null}"
+				TextAlignment="{Binding TextAlignment, ElementName=Root}"
+				VerticalContentAlignment="{Binding BoxVerticalAlignment, ElementName=Root}"
+				TextWrapping="{Binding TextWrapping, ElementName=Root}"
+				AcceptsReturn="{Binding AcceptsReturn, ElementName=Root}"
+				MaxWidth="{Binding ActualWidth, ElementName=_tbData}"
+				IsTabStop="False" />
+		<Image HorizontalAlignment="Right" VerticalAlignment="Center" Source="/Resources/warning16.png" />
+	</Grid>
+</UserControl>

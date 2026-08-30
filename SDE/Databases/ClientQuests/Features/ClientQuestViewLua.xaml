@@ -1,0 +1,149 @@
+﻿<UserControl x:Class="SDE.Databases.ClientQuests.Features.ClientQuestViewLua"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:SDE.Databases.Quests.Features"
+			 xmlns:f="clr-namespace:SDE.Databases.Generic.Controls"
+             xmlns:TokeiLibrary="clr-namespace:TokeiLibrary;assembly=TokeiLibrary"
+             xmlns:ListView="clr-namespace:TokeiLibrary.WPF.Styles.ListView;assembly=TokeiLibrary"
+             xmlns:Tmc="clr-namespace:SDE.Editor.Generic.DbTabs"
+             xmlns:Converters="clr-namespace:SDE.Databases.Generic.Converters"
+             xmlns:Avalon="clr-namespace:SDE.Core.Avalon"
+			 xmlns:wpfbugfix="clr-namespace:TokeiLibrary.WpfBugFix;assembly=TokeiLibrary"
+             xmlns:Common="clr-namespace:SDE.Databases.Generic.Common"
+			 xmlns:styles="clr-namespace:TokeiLibrary.WPF.Styles;assembly=TokeiLibrary"
+			 xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
+			 Foreground="{DynamicResource TextForeground}"
+			 mc:Ignorable="d" 
+			 MaxWidth="800"
+			 HorizontalAlignment="Left"
+             d:DesignWidth="800"
+			 d:DesignHeight="600">
+	<UserControl.Resources>
+		<Converters:ItemPreviewConverter x:Key="ItemPreviewConverter"/>
+		<Converters:MobPreviewConverter x:Key="MobPreviewConverter"/>
+	</UserControl.Resources>
+	<Grid x:Name="_gridContainer" IsEnabled="{Binding IsModelValid}">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="auto" />
+			<RowDefinition />
+		</Grid.RowDefinitions>
+		<Grid>
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition />
+				<ColumnDefinition Width="10" />
+				<ColumnDefinition />
+			</Grid.ColumnDefinitions>
+			<f:HorizontalGrid ColumnCount="1">
+				<f:Property Label="Quest ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Id}" >
+					<f:Property.Editor>
+						<f:ValidationTextBox IsReadOnly="True" Text="{Binding Id}" />
+					</f:Property.Editor>
+					<f:Property.Extras>
+						<f:EditKeyButton SourceField="{Binding Id}" />
+					</f:Property.Extras>
+				</f:Property>
+
+				<f:Property Label="Icon" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding IconName}" >
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding IconName, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+					<f:Property.Extras>
+						<f:ClientQuestImage SourceField="{Binding IconName}" Height="24" />
+						<f:SelectResourceButton Source="QuestIcons" SourceField="{Binding IconName}" SearchText="ico_" AutoComplete="Collapsed" />
+					</f:Property.Extras>
+				</f:Property>
+
+				<f:Property Label="NpcSpr" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding NpcSpr}" >
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding NpcSpr, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+					<f:Property.Extras>
+						<f:SelectResourceButton Source="Npc" SourceField="{Binding NpcSpr}" AutoComplete="Collapsed" />
+					</f:Property.Extras>
+				</f:Property>
+
+				<f:Property Label="NpcNavi" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding NpcNavi}" >
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding NpcNavi, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="NpcPosX" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding NpcPosX}" >
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding NpcPosX, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="NpcPosY" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding NpcPosY}" >
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding NpcPosY, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="RewardEXP" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding RewardEXP}" >
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding RewardEXP, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="RewardJEXP" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding RewardJEXP}" >
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding RewardJEXP, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Cooldown quest" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding CoolTimeQuest}" >
+					<f:Property.Editor>
+						<CheckBox IsChecked="{Binding CoolTimeQuest}" VerticalAlignment="Center" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<TextBlock Style="{StaticResource DbTextBlock}" Text="Rewards" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Rewards}" Grid.Row="0" Grid.Column="0" FontStyle="Italic" />
+
+				<wpfbugfix:RangeListView x:Name="_lvRewards" Grid.Row="1" Grid.Column="0"
+					 TextSearch.TextPath="DisplayItemName"
+					 Margin="3"
+					 MinHeight="200"
+					 MaxHeight="200"
+					 BorderThickness="1"
+					 ListView:ListViewExtensions.IsGridSortable="True"
+					 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+					 ItemsSource="{Binding Rewards, UpdateSourceTrigger=PropertyChanged}"
+					 IsHitTestVisible="{Binding IsModelValid}"
+					 SelectionChanged="_lvRewards_SelectionChanged"
+					 FocusVisualStyle="{x:Null}">
+				</wpfbugfix:RangeListView>
+			</f:HorizontalGrid>
+
+			<f:HorizontalGrid ColumnCount="1" Grid.Column="2">
+				<f:Property Label="Title" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Title}" >
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Summary" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Summary}" VerticalAlignment="Top" >
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding Summary, UpdateSourceTrigger=PropertyChanged}" MinHeight="50" TextWrapping="Wrap" BoxVerticalAlignment="Top" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property x:Name="_propDescription" Label="Description" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Description}" >
+					<f:Property.Editor>
+						<Border Grid.Column="1" BorderThickness="1" BorderBrush="{x:Static SystemColors.ActiveBorderBrush}">
+							<avalonedit:TextEditor MinHeight="134" MaxHeight="134"
+								HorizontalScrollBarVisibility="Auto" 
+								VerticalScrollBarVisibility="Auto" 
+								ShowLineNumbers="True" 
+								FontFamily="Consolas" 
+								WordWrap="True" 
+								Avalon:AvalonEditBinding.Text="{Binding Description}" />
+						</Border>
+					</f:Property.Editor>
+				</f:Property>
+			</f:HorizontalGrid>
+		</Grid>
+	</Grid>
+</UserControl>

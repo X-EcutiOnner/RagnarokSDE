@@ -8,13 +8,12 @@ using System.Windows.Media;
 using ErrorManager;
 using GRF.IO;
 using GRF.Image;
-using GRF.System;
+using GRF.GrfSystem;
 using GrfToWpfBridge;
 using ICSharpCode.AvalonEdit;
 using TokeiLibrary;
 using Utilities;
 using Utilities.Extension;
-using Utilities.Services;
 
 namespace SDE.ApplicationConfiguration {
 	/// <summary>
@@ -27,13 +26,11 @@ namespace SDE.ApplicationConfiguration {
 			element.TextChanged += delegate {
 				set(element.Text);
 
-				if (extra != null)
-					extra();
+				extra?.Invoke();
 			};
 
 			if (execute) {
-				if (extra != null)
-					extra();
+				extra?.Invoke();
 			}
 		}
 	}
@@ -43,9 +40,7 @@ namespace SDE.ApplicationConfiguration {
 	/// </summary>
 	public static class SdeAppConfiguration {
 		private static ConfigAsker _configAsker;
-		private static Encoding _encodingResDisplay;
 		public static AvalonBinder Ab = new AvalonBinder();
-		public static Encoding EncodingServer { get; set; }
 		public static Encoding EncodingMetaGrfView { get; set; }
 
 		public static ConfigAsker ConfigAsker {
@@ -61,7 +56,7 @@ namespace SDE.ApplicationConfiguration {
 		#region Program's configuration and information
 
 		public static string PublicVersion {
-			get { return "1.2.1.3"; }
+			get { return "1.2.1.5"; }
 		}
 
 		public static string Author {
@@ -91,6 +86,8 @@ namespace SDE.ApplicationConfiguration {
 		private static readonly BufferedProperty<bool> _dbWriterItemInfoIsCostume = new BufferedProperty<bool>(ConfigAsker, "[Server database editor - Db Writer - ItemInfo is costume]", true, FormatConverters.BooleanConverter);
 		private static readonly BufferedProperty<bool> _dbWriterItemInfoClassNum = new BufferedProperty<bool>(ConfigAsker, "[Server database editor - Db Writer - ItemInfo class num]", true, FormatConverters.BooleanConverter);
 		private static readonly BufferedProperty<bool> _dbWriterGroupItemSingle = new BufferedProperty<bool>(ConfigAsker, "[Server database editor - Db Writer - group_item single]", true, FormatConverters.BooleanConverter);
+		private static readonly BufferedProperty<bool> _dbWriterItemInfoCompress = new BufferedProperty<bool>(ConfigAsker, "[Server database editor - Db Writer - ItemInfo compress]", false, FormatConverters.BooleanConverter);
+		private static readonly BufferedProperty<bool> _dbWriterItemInfoKeeyOriginal = new BufferedProperty<bool>(ConfigAsker, "[Server database editor - Db Writer - ItemInfo keep original]", true, FormatConverters.BooleanConverter);
 
 		public static string TempPath {
 			get { return Settings.TempPath; }
@@ -130,6 +127,30 @@ namespace SDE.ApplicationConfiguration {
 			set { ConfigAsker["[Server database editor - ThemeIndex]"] = value.ToString(CultureInfo.InvariantCulture); }
 		}
 
+		public static bool SaveEditorPosition {
+			get => Boolean.Parse(ConfigAsker["[SDE - SaveEditorPosition]", true.ToString()]);
+			set => ConfigAsker["[SDE - SaveEditorPosition]"] = value.ToString();
+		}
+
+		public static string EditorSavedPositions {
+			get => ConfigAsker["[SDE - EditorSavedPositions]", ""];
+			set => ConfigAsker["[SDE - EditorSavedPositions]"] = value;
+		}
+
+		private static Encoding _encodingServer;
+
+		public static Encoding EncodingServer {
+			get {
+				if (_encodingServer == null)
+					_encodingServer = Encoding.GetEncoding(EncodingCodepageServer);
+
+				return _encodingServer;
+			}
+			set {
+				_encodingServer = value;
+			}
+		}
+
 		public static int EncodingCodepageClient {
 			get {
 				if (PatchId == 0) {
@@ -147,9 +168,8 @@ namespace SDE.ApplicationConfiguration {
 			set { ConfigAsker["[Server database editor - Encoding server codepage]"] = value.ToString(CultureInfo.InvariantCulture); }
 		}
 
-		public static int DbValidMaxItemDbId {
-			get { return ConfigAsker["[Server database editor - Db validation - Max item db]", "0x8000"].ToInt(); }
-			set { ConfigAsker["[Server database editor - Db validation - Max item db]"] = value.ToString(CultureInfo.InvariantCulture); }
+		public static uint DbValidMaxItemDbId {
+			get => UInt32.MaxValue;
 		}
 
 		public static int DbValidMaxMobDbId {
@@ -175,6 +195,11 @@ namespace SDE.ApplicationConfiguration {
 		public static bool ValidationRawView {
 			get { return Boolean.Parse(ConfigAsker["[Validation - Show raw view]", false.ToString()]); }
 			set { ConfigAsker["[Validation - Show raw view]"] = value.ToString(); }
+		}
+
+		public static bool MobAdjustOldFormula {
+			get { return Boolean.Parse(ConfigAsker["[Validation - MobAdjustOldFormula]", false.ToString()]); }
+			set { ConfigAsker["[Validation - MobAdjustOldFormula]"] = value.ToString(); }
 		}
 
 		public static bool BindItemTabs {
@@ -392,44 +417,6 @@ namespace SDE.ApplicationConfiguration {
 			set { ConfigAsker["[Server database editor - Validation resource - Monsters]"] = value.ToString(); }
 		}
 
-		public static Encoding EncodingResDisplay {
-			get {
-				if (_encodingResDisplay == null) {
-					if (EncodingResCodePage < 0) {
-						_encodingResDisplay = EncodingService.DisplayEncoding;
-						EncodingResCodePage = EncodingService.DisplayEncoding.CodePage;
-					}
-					else {
-						try {
-							_encodingResDisplay = Encoding.GetEncoding(EncodingResCodePage);
-						}
-						catch {
-							_encodingResDisplay = EncodingService.DisplayEncoding;
-							EncodingResIndex = 0;
-							EncodingResCodePage = EncodingService.DisplayEncoding.CodePage;
-						}
-					}
-				}
-				else if (_encodingResDisplay.CodePage != EncodingResCodePage) {
-					try {
-						_encodingResDisplay = Encoding.GetEncoding(EncodingResCodePage);
-					}
-					catch {
-						_encodingResDisplay = EncodingService.DisplayEncoding;
-						EncodingResIndex = 0;
-						EncodingResCodePage = EncodingService.DisplayEncoding.CodePage;
-					}
-				}
-
-				return _encodingResDisplay;
-			}
-		}
-
-		public static int EncodingResCodePage {
-			get { return Int32.Parse(ConfigAsker["[Server database editor - Encoding res codepage]", "-1"]); }
-			set { ConfigAsker["[Server database editor - Encoding res codepage]"] = value.ToString(CultureInfo.InvariantCulture); }
-		}
-
 		public static int EncodingResIndex {
 			get { return Int32.Parse(ConfigAsker["[Server database editor - Encoding res index]", "0"]); }
 			set { ConfigAsker["[Server database editor - Encoding res index]"] = value.ToString(CultureInfo.InvariantCulture); }
@@ -458,6 +445,11 @@ namespace SDE.ApplicationConfiguration {
 		public static string AppLastPathDb {
 			get { return ConfigAsker["[Server database editor - Application latest db]", AppLastPath]; }
 			set { ConfigAsker["[Server database editor - Application latest db]"] = value; }
+		}
+
+		public static bool SdeShellAssociated {
+			get => (FileShellAssociated & FileAssociation.Sde) == FileAssociation.Sde;
+			set => FileShellAssociated |= FileAssociation.Sde;
 		}
 
 		public static FileAssociation FileShellAssociated {
@@ -556,6 +548,16 @@ namespace SDE.ApplicationConfiguration {
 		public static bool DbWriterGroupItemSingle {
 			get { return _dbWriterGroupItemSingle.Get(); }
 			set { _dbWriterGroupItemSingle.Set(value); }
+		}
+
+		public static bool DbWriterCompressData {
+			get { return _dbWriterItemInfoCompress.Get(); }
+			set { _dbWriterItemInfoCompress.Set(value); }
+		}
+
+		public static bool DbWriterKeepOriginal {
+			get { return _dbWriterItemInfoKeeyOriginal.Get(); }
+			set { _dbWriterItemInfoKeeyOriginal.Set(value); }
 		}
 
 		public static bool AlwaysOverwriteFiles {

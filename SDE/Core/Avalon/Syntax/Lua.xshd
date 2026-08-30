@@ -169,7 +169,7 @@
       <Word>coroutine</Word>
       <Word>io</Word>
       <Word>os</Word>
-      <Word>debug</Word>
+      <Word>context</Word>
     </Keywords>
 
     <Keywords foreground="#FF0083E9">

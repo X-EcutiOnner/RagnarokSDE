@@ -1,30 +1,21 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using Database;
 using ErrorManager;
 using SDE.Core.Avalon;
-using SDE.Editor.Generic;
-using SDE.Editor.Generic.Lists;
+using SDE.Databases;
+using SDE.Databases.ClientItems.Features;
+using SDE.Editor.Database;
 using TokeiLibrary.WPF.Styles;
-using Utilities;
 
 namespace SDE.View.Dialogs {
 	/// <summary>
 	/// Interaction logic for ConvertItemIdsDialog.xaml
 	/// </summary>
 	public partial class ConvertItemIdsDialog : TkWindow {
-		private MetaTable<int> _citemsDb;
+		private MergedTable _citemsDb;
 
 		public ConvertItemIdsDialog()
 			: base("Convert item IDs in text", "convert.png", SizeToContent.Manual, ResizeMode.CanResize) {
@@ -46,7 +37,7 @@ namespace SDE.View.Dialogs {
 			_tbSource.Text = Clipboard.GetText();
 
 			try {
-				_citemsDb = SdeEditor.Instance.ProjectDatabase.GetMetaTable<int>(ServerDbs.CItems);
+				_citemsDb = SdeEditor.Project.GetMergedTable(DataSources.ClientItem);
 			}
 			catch {
 				_citemsDb = null;
@@ -63,7 +54,7 @@ namespace SDE.View.Dialogs {
 			try {
 				if (_citemsDb == null || _citemsDb.Count == 0) {
 					try {
-						_citemsDb = SdeEditor.Instance.ProjectDatabase.GetMetaTable<int>(ServerDbs.CItems);
+						_citemsDb = SdeEditor.Project.GetMergedTable(DataSources.ClientItem);
 					}
 					catch {
 						_citemsDb = null;
@@ -81,12 +72,12 @@ namespace SDE.View.Dialogs {
 				foreach (var match in regex.Matches(_tbSource.Text).OfType<Match>().Reverse()) {
 					int id;
 
-					if (Int32.TryParse(match.ToString(), out id) && (id < 2020 || id > 2023)) {
+					if (Int32.TryParse(match.ToString(), out id) && (id < 2020 || id > 2036)) {
 						var tuple = _citemsDb.TryGetTuple(id);
 
 						if (tuple != null) {
 							copy = copy.Remove(match.Index, match.Length);
-							copy = copy.Insert(match.Index, tuple.GetValue<string>(ClientItemAttributes.IdentifiedDisplayName));
+							copy = copy.Insert(match.Index, tuple.GetModel<ClientItem>().IdentifiedDisplayName ?? "");
 						}
 					}
 				}

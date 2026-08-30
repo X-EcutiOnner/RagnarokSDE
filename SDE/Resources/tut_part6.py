@@ -14,9 +14,9 @@
 # They will be automatically updated if you modify their original tables (item_db
 # or item_db2).
 
-item_db[499, "name"] = "Item from item_db"
-item_db2[499, "name"] = "Item from item_db2 !"
-print item_db_m[499, "name"]
+item_db[499, "Name"] = "Item from item_db"
+item_db2[499, "Name"] = "Item from item_db2 !"
+print item_db_m[499, "Name"]
 item_db2[499] = None
-print item_db_m[499, "name"]
+print item_db_m[499, "Name"]
 

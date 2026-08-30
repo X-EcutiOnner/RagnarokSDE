@@ -1,0 +1,23 @@
+﻿<UserControl x:Class="SDE.Editor.ErrorConsole.ErrorConsoleControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:SDE.Editor.ErrorConsole"
+			 xmlns:TokeiLibrary="clr-namespace:TokeiLibrary;assembly=TokeiLibrary"
+			 xmlns:ListView="clr-namespace:TokeiLibrary.WPF.Styles.ListView;assembly=TokeiLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+	<Grid>
+		<ListView Foreground="{DynamicResource TextForeground}" AllowDrop="True" Grid.Row="1" x:Name="_debugList" SelectionMode="Extended" BorderThickness="0" FocusVisualStyle="{x:Null}"
+								ListView:ListViewExtensions.IsGridSortable="True" VirtualizingPanel.IsVirtualizing="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+			<ListView.ContextMenu>
+				<ContextMenu>
+					<MenuItem x:Name="_miOpenNotepad" TokeiLibrary:WpfProperties.ImagePath="treeList.png" Click="_miOpenNotepad_Click" Header="Select in Notepad++" />
+					<MenuItem x:Name="_miOpen" TokeiLibrary:WpfProperties.ImagePath="arrowdown.png" Click="_miOpen_Click" Header="Open" />
+					<MenuItem x:Name="_miCopy" TokeiLibrary:WpfProperties.ImagePath="copy.png" Click="_miCopy_Click" Header="Copy exception" />
+				</ContextMenu>
+			</ListView.ContextMenu>
+		</ListView>
+	</Grid>
+</UserControl>

@@ -1,0 +1,89 @@
+﻿<UserControl x:Class="SDE.Databases.Castles.Features.CastleViewYaml"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+			 xmlns:f="clr-namespace:SDE.Databases.Generic.Controls"
+             xmlns:TokeiLibrary="clr-namespace:TokeiLibrary;assembly=TokeiLibrary"
+             xmlns:Tmc="clr-namespace:SDE.Editor.Generic.DbTabs"
+			 xmlns:wpfbugfix="clr-namespace:TokeiLibrary.WpfBugFix;assembly=TokeiLibrary"
+             xmlns:CastleCommon="clr-namespace:SDE.Databases.Castles.Common"
+			 xmlns:styles="clr-namespace:TokeiLibrary.WPF.Styles;assembly=TokeiLibrary"
+			 Foreground="{DynamicResource TextForeground}"
+			 mc:Ignorable="d" 
+			 MaxWidth="800"
+			 HorizontalAlignment="Left"
+			 d:DesignWidth="800">
+	<f:HorizontalGrid x:Name="_gridContainer" IsEnabled="{Binding IsModelValid}" ColumnCount="2">
+		<f:Property Label="Castle ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Id}" ToolTip="Unique ID of the castle." >
+			<f:Property.Editor>
+				<f:ValidationTextBox Text="{Binding Id}" IsReadOnly="True" />
+			</f:Property.Editor>
+			<f:Property.Extras>
+				<f:EditKeyButton SourceField="{Binding Id}" />
+			</f:Property.Extras>
+		</f:Property>
+
+		<f:Property Label="Map name" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Map}" ToolTip="Map name to be considered as the castle map." >
+			<f:Property.Editor>
+				<f:ValidationTextBox Text="{Binding Map, UpdateSourceTrigger=PropertyChanged}" />
+			</f:Property.Editor>
+		</f:Property>
+
+		<f:Property Label="Castle name" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Name}" ToolTip="Name of the castle (used by scripts and guardian name tags)." >
+			<f:Property.Editor>
+				<f:ValidationTextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+			</f:Property.Editor>
+		</f:Property>
+
+		<f:Property Label="NPC" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Npc}" ToolTip="NPC unique name to invoke ::OnGuildBreak on, when a occupied castle is abandoned during guild break." >
+			<f:Property.Editor>
+				<f:ValidationTextBox Text="{Binding Npc, UpdateSourceTrigger=PropertyChanged}" />
+			</f:Property.Editor>
+		</f:Property>
+
+		<f:Property Label="Edition" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Type}" ToolTip="The WoE type this castle belongs to. (Default: First_Edition)" >
+			<f:Property.Editor>
+				<ComboBox ItemsSource="{Binding Path=(CastleCommon:CastleTypeInfo.AllVisibleOnly)}" SelectedItem="{Binding Type, UpdateSourceTrigger=PropertyChanged}" />
+			</f:Property.Editor>
+		</f:Property>
+
+		<f:Property Label="Client ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding ClientId}" ToolTip="Client side ID of the castle. (Default: 0)" >
+			<f:Property.Editor>
+				<f:ValidationTextBox Text="{Binding ClientId, UpdateSourceTrigger=PropertyChanged}" />
+			</f:Property.Editor>
+		</f:Property>
+
+		<f:Property Label="Warp enabled" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding WarpEnabled}" ToolTip="If the warp to the castle is enabled. (Default: false)" >
+			<f:Property.Editor>
+				<CheckBox IsChecked="{Binding WarpEnabled}" VerticalAlignment="Center" />
+			</f:Property.Editor>
+		</f:Property>
+
+		<f:Separator />
+
+		<f:Property Label="Warp X" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding WarpX}" ToolTip="X coordinate to warp to. (Default: 0)" >
+			<f:Property.Editor>
+				<f:ValidationTextBox Text="{Binding WarpX, UpdateSourceTrigger=PropertyChanged}" />
+			</f:Property.Editor>
+		</f:Property>
+
+		<f:Property Label="Warp Y" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding WarpY}" ToolTip="Y coordinate to warp to. (Default: 0)" >
+			<f:Property.Editor>
+				<f:ValidationTextBox Text="{Binding WarpY, UpdateSourceTrigger=PropertyChanged}" />
+			</f:Property.Editor>
+		</f:Property>
+
+		<f:Property Label="Warp cost" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding WarpCost}" ToolTip="Zeny cost to use the warp. (Default: 100)" >
+			<f:Property.Editor>
+				<f:ValidationTextBox Text="{Binding WarpCost, UpdateSourceTrigger=PropertyChanged}" />
+			</f:Property.Editor>
+		</f:Property>
+
+		<f:Property Label="Warp cost siege" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding WarpCostSiege}" ToolTip="Zeny cost to use the warp during WoE. (Default: 100000)" >
+			<f:Property.Editor>
+				<f:ValidationTextBox Text="{Binding WarpCostSiege, UpdateSourceTrigger=PropertyChanged}" />
+			</f:Property.Editor>
+		</f:Property>
+	</f:HorizontalGrid>
+</UserControl>

@@ -12,7 +12,9 @@ using ICSharpCode.AvalonEdit.Editing;
 using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Highlighting.Xshd;
 using ICSharpCode.AvalonEdit.Rendering;
-using SDE.Editor.Engines.LuaEngine;
+using SDE.Editor.LuaTables;
+using SDE.View.Dialogs;
+using SDE.View.Editors;
 
 namespace SDE.Core.Avalon {
 	public class AvalonLoader {
@@ -22,7 +24,7 @@ namespace SDE.Core.Avalon {
 				"Lua", "SDE.Core.Avalon.Syntax.Lua.xshd",
 				"Imf", "SDE.Core.Avalon.Syntax.Imf.xshd",
 				//"DefaultColors", "SDE.Core.Avalon.Syntax.DefaultColors.xshd",
-				"Python", "SDE.Core.Avalon.Syntax.Python.xshd",
+				"IronPython", "SDE.Core.Avalon.Syntax.IronPython.xshd",
 				"DebugDb", "SDE.Core.Avalon.Syntax.DebugDb.xshd",
 			};
 
@@ -32,6 +34,7 @@ namespace SDE.Core.Avalon {
 				using (Stream s = typeof(App).Assembly.GetManifestResourceStream(syntaxes[i + 1])) {
 					if (s == null)
 						throw new InvalidOperationException("Could not find embedded resource");
+
 					using (XmlReader reader = new XmlTextReader(s)) {
 						customHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
 					}
@@ -204,8 +207,38 @@ namespace SDE.Core.Avalon {
 				using (Stream s = typeof(App).Assembly.GetManifestResourceStream("SDE.Core.Avalon.Syntax." + ext + ".xshd")) {
 					if (s == null)
 						throw new InvalidOperationException("Could not find embedded resource");
-					using (XmlReader reader = new XmlTextReader(s)) {
-						customHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
+
+					if (ext == "Script") {
+						using (XmlReader reader = new XmlTextReader(s)) {
+							XshdSyntaxDefinition xshd = HighlightingLoader.LoadXshd(reader);
+
+							var ruleSet = xshd.Elements.OfType<XshdRuleSet>().FirstOrDefault();
+
+							if (ruleSet != null) {
+								XshdKeywords keywordGroup = ruleSet.Elements.OfType<XshdKeywords>().FirstOrDefault(p => p.ColorReference.ReferencedElement == "KeywordsStructure");
+
+								if (keywordGroup != null) {
+									keywordGroup.Words.Clear();
+									foreach (var word in ScriptEditorList.rAthenaScriptFunctions)
+										keywordGroup.Words.Add(word);
+								}
+
+								keywordGroup = ruleSet.Elements.OfType<XshdKeywords>().FirstOrDefault(p => p.ColorReference.ReferencedElement == "KeywordsConstant");
+
+								if (keywordGroup != null) {
+									keywordGroup.Words.Clear();
+									foreach (var word in ScriptEditorList.rAthenaScriptConstants)
+										keywordGroup.Words.Add(word);
+								}
+							}
+
+							customHighlighting = HighlightingLoader.Load(xshd, HighlightingManager.Instance);
+						}
+					}
+					else {
+						using (XmlReader reader = new XmlTextReader(s)) {
+							customHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
+						}
 					}
 				}
 

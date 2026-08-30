@@ -32,6 +32,73 @@ main = function()
 	end
 	return true, "good"
 end
+__%ItemInfoFunctionCompress
+main = function()
+	for ItemID,DESC in pairs(tbl) do
+		local unidentifiedDisplayName = DESC.unidentifiedDisplayName;
+		local unidentifiedResourceName = DESC.unidentifiedResourceName;
+		local ClassNum = DESC.ClassNum;
+		local slotCount = DESC.slotCount;
+		
+		if unidentifiedDisplayName == nil then
+			unidentifiedDisplayName = DESC.identifiedDisplayName;
+		end
+		
+		if unidentifiedResourceName == nil then
+			unidentifiedResourceName = DESC.identifiedResourceName;
+		end
+		
+		if ClassNum == nil then
+			ClassNum = 0;
+		end
+		
+		if slotCount == nil then
+			slotCount = 0;
+		end
+		
+		result, msg = AddItem(ItemID, unidentifiedDisplayName, unidentifiedResourceName, DESC.identifiedDisplayName, DESC.identifiedResourceName, slotCount, ClassNum)
+		if not result then
+			return false, msg
+		end
+		
+		if (DESC.unidentifiedDescriptionName == nil) then
+			for k,v in pairs(DESC.identifiedDescriptionName) do
+				result, msg = AddItemIdentifiedDesc(ItemID, v)
+				if not result then
+					return false, msg
+				end
+			end
+		else
+			for k,v in pairs(DESC.unidentifiedDescriptionName) do
+				result, msg = AddItemIdentifiedDesc(ItemID, v)
+				if not result then
+					return false, msg
+				end
+			end
+		end
+
+		for k,v in pairs(DESC.identifiedDescriptionName) do
+			result, msg = AddItemIdentifiedDesc(ItemID, v)
+			if not result then
+				return false, msg
+			end
+		end
+
+		if DESC.EffectID ~= nil then
+			result, msg = AddItemEffectInfo(ItemID, DESC.EffectID)
+			if not result == true then
+				return false, msg
+			end
+		end
+		if DESC.costume ~= nil then
+			result, msg = AddItemIsCostume(ItemID, DESC.costume)
+			if not result == true then
+				return false, msg
+			end
+		end
+	end
+	return true, "good"
+end
 __%AchievementFunction
 function main()
 	for achieveID, achieveInfo in pairs(achievement_tbl) do
@@ -441,92 +508,92 @@ CREATE TABLE IF NOT EXISTS `mob_skill_db` (
 
 
 __%Emotions
-e_gasp	0
-e_what	1
-e_ho	2
-e_lv	3
-e_swt	4
-e_ic	5
-e_an	6
-e_ag	7
-e_cash	8
-e_dots	9
-e_scissors	10
-e_rock	11
-e_paper	12
-e_korea	13
-e_lv2	14
-e_thx	15
-e_wah	16
-e_sry	17
-e_heh	18
-e_swt2	19
-e_hmm	20
-e_no1	21
-e_no	22
-e_omg	23
-e_oh	24
-e_X	25
-e_hlp	26
-e_go	27
-e_sob	28
-e_gg	29
-e_kis	30
-e_kis2	31
-e_pif	32
-e_ok	33
-e_mute	34
-e_indonesia	35
-e_bzz	36
-e_rice	37
-e_awsm	38
-e_meh	39
-e_shy	40
-e_pat	41
-e_mp	42
-e_slur	43
-e_com	44
-e_yawn	45
-e_grat	46
-e_hp	47
-e_philippines	48
-e_malaysia	49
-e_singapore	50
-e_brazil	51
-e_flash	52
-e_spin	53
-e_sigh	54
-e_dum	55
-e_loud	56
-e_otl	57
-e_dice1	58
-e_dice2	59
-e_dice3	60
-e_dice4	61
-e_dice5	62
-e_dice6	63
-e_india	64
-e_luv	65
-e_russia	66
-e_virgin	67
-e_mobile	68
-e_mail	69
-e_chinese	70
-e_antenna1	71
-e_antenna2	72
-e_antenna3	73
-e_hum	74
-e_abs	75
-e_oops	76
-e_spit	77
-e_ene	78
-e_panic	79
-e_whisp	80
-e_yut	81
-e_yut2	82
-e_yut3	83
-e_yut4	84
-e_yut5	85
-e_yut6	86
-e_yut7	87
+e_gasp	ET_SURPRISE	0
+e_what	ET_QUESTION	1
+e_ho	ET_DELIGHT	2
+e_lv	ET_THROB	3
+e_swt	ET_SWEAT	4
+e_ic	ET_AHA	5
+e_an	ET_FRET	6
+e_ag	ET_ANGER	7
+e_cash	ET_MONEY	8
+e_dots	ET_THINK	9
+e_scissors	ET_SCISSOR	10
+e_rock	ET_ROCK	11
+e_paper	ET_WRAP	12
+e_korea	ET_FLAG	13
+e_lv2	ET_BIGTHROB	14
+e_thx	ET_THANKS	15
+e_wah	ET_KEK	16
+e_sry	ET_SORRY	17
+e_heh	ET_SMILE	18
+e_swt2	ET_PROFUSELY_SWEAT	19
+e_hmm	ET_SCRATCH	20
+e_no1	ET_BEST	21
+e_no	ET_STARE_ABOUT	22
+e_omg	ET_HUK	23
+e_oh	ET_O	24
+e_X	ET_X	25
+e_hlp	ET_HELP	26
+e_go	ET_GO	27
+e_sob	ET_CRY	28
+e_gg	ET_KIK	29
+e_kis	ET_CHUP	30
+e_kis2	ET_CHUPCHUP	31
+e_pif	ET_HNG	32
+e_ok	ET_OK	33
+e_mute	ET_CHAT_PROHIBIT	34
+e_indonesia	ET_INDONESIA_FLAG	35
+e_bzz	ET_STARE	36
+e_rice	ET_HUNGRY	37
+e_awsm	ET_COOL	38
+e_meh	ET_MERONG	39
+e_shy	ET_SHY	40
+e_pat	ET_GOODBOY	41
+e_mp	ET_SPTIME	42
+e_slur	ET_SEXY	43
+e_com	ET_COMEON	44
+e_yawn	ET_SLEEPY	45
+e_grat	ET_CONGRATULATION	46
+e_hp	ET_HPTIME	47
+e_philippines	ET_PH_FLAG	48
+e_malaysia	ET_MY_FLAG	49
+e_singapore	ET_SI_FLAG	50
+e_brazil	ET_BR_FLAG	51
+e_flash	ET_SPARK	52
+e_spin	ET_CONFUSE	53
+e_sigh	ET_OHNO	54
+e_dum	ET_HUM	55
+e_loud	ET_BLABLA	56
+e_otl	ET_OTL	57
+e_dice1	ET_DICE1	58
+e_dice2	ET_DICE2	59
+e_dice3	ET_DICE3	60
+e_dice4	ET_DICE4	61
+e_dice5	ET_DICE5	62
+e_dice6	ET_DICE6	63
+e_india	ET_INDIA_FLAG	64
+e_luv	ET_LUV	65
+e_russia	ET_FLAG8	66
+e_virgin	ET_FLAG9	67
+e_mobile	ET_MOBILE	68
+e_mail	ET_MAIL	69
+e_chinese	ET_ANTENNA0	70
+e_antenna1	ET_ANTENNA1	71
+e_antenna2	ET_ANTENNA2	72
+e_antenna3	ET_ANTENNA3	73
+e_hum	ET_HUM2	74
+e_abs	ET_ABS	75
+e_oops	ET_OOPS	76
+e_spit	ET_SPIT	77
+e_ene	ET_ENE	78
+e_panic	ET_PANIC	79
+e_whisp	ET_WHISP	80
+e_yut	ET_YUT1	81
+e_yut2	ET_YUT2	82
+e_yut3	ET_YUT3	83
+e_yut4	ET_YUT4	84
+e_yut5	ET_YUT5	85
+e_yut6	ET_YUT6	86
+e_yut7	ET_YUT7	87
 __%END

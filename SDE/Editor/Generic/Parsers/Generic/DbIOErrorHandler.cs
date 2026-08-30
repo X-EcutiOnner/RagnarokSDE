@@ -2,7 +2,8 @@ using System;
 using System.Collections.Generic;
 using ErrorManager;
 using SDE.ApplicationConfiguration;
-using SDE.Editor.Engines.Parsers;
+using SDE.Databases;
+using SDE.Editor.Parsers;
 using SDE.View;
 using TokeiLibrary;
 using Utilities.CommandLine;
@@ -23,6 +24,17 @@ namespace SDE.Editor.Generic.Parsers.Generic {
 
 		public static void ClearListeners() {
 			_listeners.Clear();
+		}
+
+		public static void FileNotFound(DataSource source, ErrorLevel errorLevel = ErrorLevel.NotSpecified, Exception err = null) {
+			Handle(err ?? StackTraceException.GetStrackTraceException(), $"File not found '{source}'.", errorLevel);
+		}
+
+		public static void FailedToReadTooManyItems(DataSource source = null, ErrorLevel errorLevel = ErrorLevel.Critical, Exception err = null) {
+			if (source== null)
+				Handle(err ?? StackTraceException.GetStrackTraceException(), $"Failed to read too many items, the db will stop loading.", errorLevel);
+			else
+				Handle(err ?? StackTraceException.GetStrackTraceException(), $"Failed to read too many items, the db '{source}' will stop loading.", errorLevel);
 		}
 
 		public static void Handle(Exception err, string exception, ErrorLevel level) {
@@ -86,14 +98,14 @@ namespace SDE.Editor.Generic.Parsers.Generic {
 		}
 
 		public static void Start() {
-			if (_listeners.Count > 0 && _listeners[0] is SdeEditor) {
-				_start = ((SdeEditor)_listeners[0]).Dispatch(p => p._debugList.Items.Count);
+			if (_listeners.Count > 0 && _listeners[0] is SdeEditor editor) {
+				_start = editor.Dispatch(p => p.ErrorCount);
 			}
 		}
 
 		public static void Stop() {
-			if (_listeners.Count > 0 && _listeners[0] is SdeEditor) {
-				if (((SdeEditor)_listeners[0]).Dispatch(p => p._debugList.Items.Count) != _start) {
+			if (_listeners.Count > 0 && _listeners[0] is SdeEditor editor) {
+				if (editor.Dispatch(p => p.ErrorCount) != _start) {
 					Focus();
 				}
 			}

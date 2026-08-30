@@ -1,0 +1,238 @@
+﻿<UserControl x:Class="SDE.Databases.Pets.Features.PetViewYaml"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:SDE.Databases.Quests.Features"
+			 xmlns:f="clr-namespace:SDE.Databases.Generic.Controls"
+             xmlns:TokeiLibrary="clr-namespace:TokeiLibrary;assembly=TokeiLibrary"
+             xmlns:ListView="clr-namespace:TokeiLibrary.WPF.Styles.ListView;assembly=TokeiLibrary"
+             xmlns:Tmc="clr-namespace:SDE.Editor.Generic.DbTabs"
+             xmlns:Converters="clr-namespace:SDE.Databases.Generic.Converters"
+			 xmlns:wpfbugfix="clr-namespace:TokeiLibrary.WpfBugFix;assembly=TokeiLibrary"
+             xmlns:Common="clr-namespace:SDE.Databases.Generic.Common"
+			 xmlns:styles="clr-namespace:TokeiLibrary.WPF.Styles;assembly=TokeiLibrary"
+			 Foreground="{DynamicResource TextForeground}"
+			 mc:Ignorable="d" 
+			 MaxWidth="800"
+			 HorizontalAlignment="Left"
+             d:DesignWidth="800"
+			 d:DesignHeight="600">
+	<UserControl.Resources>
+		<Converters:ItemPreviewConverter x:Key="ItemPreviewConverter"/>
+		<Converters:MobPreviewConverter x:Key="MobPreviewConverter"/>
+	</UserControl.Resources>
+	<Grid x:Name="_gridContainer" IsEnabled="{Binding IsModelValid}">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="auto" />
+			<RowDefinition />
+		</Grid.RowDefinitions>
+		<f:HorizontalGrid ColumnCount="2">
+			<f:Property Label="Mob ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Mob}" ToolTip="Monster that can be used as pet." >
+				<f:Property.Editor>
+					<f:ValidationTextBox IsReadOnly="True" Text="{Binding Mob}" PreviewText="{Binding Mob, Converter={StaticResource MobPreviewConverter}}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:SelectTupleButton Source="Mobs" SourceField="{Binding Mob}" />
+					<f:EditKeyButton SourceField="{Binding Mob}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Separator />
+
+			<f:Property Label="Tame item ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding TameItem}" ToolTip="Pet Tame Item." >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding TameItem, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding TameItem, Converter={StaticResource ItemPreviewConverter}}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:SelectTupleButton Source="Items" SourceField="{Binding TameItem}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Egg ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding EggItem}" ToolTip="Pet Egg Item." >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding EggItem, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding EggItem, Converter={StaticResource ItemPreviewConverter}}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:SelectTupleButton Source="Items" SourceField="{Binding EggItem}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Equip ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding EquipItem}" ToolTip="Pet Accessory Item. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding EquipItem, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding EquipItem, Converter={StaticResource ItemPreviewConverter}}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:SelectTupleButton Source="Items" SourceField="{Binding EquipItem}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Food ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding FoodItem}" ToolTip="Pet Food Item. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding FoodItem, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding FoodItem, Converter={StaticResource ItemPreviewConverter}}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:SelectTupleButton Source="Items" SourceField="{Binding FoodItem}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Hunger decrease amount" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Fullness}" ToolTip="The amount of hunger is decreased every [HungryDelay] seconds." >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Fullness, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Separator />
+
+			<f:Property Label="Hunger decrease delay" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding HungryDelay}" ToolTip="The amount of time in seconds it takes for hunger to decrease after feeding. (Default: 60)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding HungryDelay, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:TimeEditButton SourceField="{Binding HungryDelay}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Hunger increase" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding HungerIncrease}" ToolTip="The amount of hunger that is increased every time the pet is fed (Default: 20)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding HungerIncrease, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Start intimacy" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding IntimacyStart}" ToolTip="Amount of Intimacy the pet starts with. (Default: 250)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding IntimacyStart, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Intimacy increased&#x0a;when fed" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding IntimacyFed}" ToolTip="Amount of Intimacy that is increased when fed. (Default: 50)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding IntimacyFed, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Intimacy increased&#x0a;when overfed" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding IntimacyOverfed}" ToolTip="Amount of Intimacy that is increased when over-fed. (Default: -100)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding IntimacyOverfed, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Intimacy increased&#x0a;when pet hungry" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding IntimacyHungry}" ToolTip="Amount of Intimacy that is increased when the pet is hungry. (Default: -5)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding IntimacyHungry, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Intimacy increased&#x0a;when owner dies" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding IntimacyOwnerDie}" ToolTip="Amount of Intimacy that is increased when the pet owner dies. (Default: -20)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding IntimacyOwnerDie, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Capture success rate" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding CaptureRate}" ToolTip="Capture success rate. (10000 = 100%)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding CaptureRate, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:RateEditButton SourceField="{Binding CaptureRate}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Special performance" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding SpecialPerformance}" ToolTip="If a pet has a Special Performance. (Default: true)" >
+				<f:Property.Editor>
+					<CheckBox IsChecked="{Binding SpecialPerformance}" VerticalAlignment="Center" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Allow autofeeding" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding AllowAutoFeed}" ToolTip="Allows turning automatic pet feeding on. (Default: false)" >
+				<f:Property.Editor>
+					<CheckBox IsChecked="{Binding AllowAutoFeed}" VerticalAlignment="Center" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Attack rate" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding AttackRate}" ToolTip="Rate of which the pet will attack [requires at least pet_support_min_friendly intimacy]. (10000 = 100%)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding AttackRate, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:RateEditButton SourceField="{Binding AttackRate}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Retaliate rate" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding RetaliateRate}" ToolTip="Rate of which the pet will retaliate when master is being attacked [requires at least pet_support_min_friendly intimacy]. (10000 = 100%)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding RetaliateRate, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:RateEditButton SourceField="{Binding RetaliateRate}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Change target rate" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding ChangeTargetRate}" ToolTip="Rate of which the pet will change its attack target. (10000 = 100%)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding ChangeTargetRate, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:RateEditButton SourceField="{Binding ChangeTargetRate}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Separator />
+
+			<f:Property Label="Script" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Script}" ToolTip="Bonus script to execute when the pet is alive. (Default: null)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Script, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:ScriptEditButton SourceField="{Binding Script}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Support script" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding SupportScript}" ToolTip="Bonus script to execute when pet_status_support is enabled. (Default: null)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding SupportScript, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:ScriptEditButton SourceField="{Binding SupportScript}" />
+				</f:Property.Extras>
+			</f:Property>
+		</f:HorizontalGrid>
+		<Grid Grid.Row="12" Grid.ColumnSpan="5">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="3*" />
+				<ColumnDefinition Width="6*" />
+			</Grid.ColumnDefinitions>
+			<Grid.RowDefinitions>
+				<RowDefinition Height="auto" />
+				<RowDefinition />
+			</Grid.RowDefinitions>
+
+			<TextBlock Style="{StaticResource DbTextBlock}" Text="Evolutions" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Evolutions}" Grid.Row="0" Grid.Column="0" FontStyle="Italic" ToolTip="Pet evolution settings. (Optional) (Default: null)" />
+			<TextBlock Style="{StaticResource DbTextBlock}" Text="Item requirements" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding SelectedEvolution.ItemRequirements}" Grid.Row="0" Grid.Column="1" FontStyle="Italic" ToolTip="Item requirements for evolving this pet." />
+
+			<wpfbugfix:RangeListView x:Name="_lvEvolutions" Grid.Row="1" Grid.Column="0"
+						 TextSearch.TextPath="DisplayTargetId"
+						 Margin="3"
+						 BorderThickness="1"
+						 ListView:ListViewExtensions.IsGridSortable="True"
+						 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+						 ItemsSource="{Binding Evolutions, UpdateSourceTrigger=PropertyChanged}"
+						 IsHitTestVisible="{Binding IsModelValid}"
+						 SelectionChanged="_lvEvolutions_SelectionChanged"
+						 FocusVisualStyle="{x:Null}">
+			</wpfbugfix:RangeListView>
+
+			<wpfbugfix:RangeListView x:Name="_lvRequirements" Grid.Row="1" Grid.Column="1"
+						 TextSearch.TextPath="DisplayTargetId"
+						 Margin="3"
+						 BorderThickness="1"
+						 ListView:ListViewExtensions.IsGridSortable="True"
+						 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+						 ItemsSource="{Binding ItemRequirements, UpdateSourceTrigger=PropertyChanged}"
+						 IsHitTestVisible="{Binding IsEvolutionSelected}"
+						 SelectionChanged="_lvRequirements_SelectionChanged"
+						 FocusVisualStyle="{x:Null}">
+			</wpfbugfix:RangeListView>
+		</Grid>
+	</Grid>
+</UserControl>

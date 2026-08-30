@@ -1,0 +1,129 @@
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Windows;
+using System.Windows.Input;
+using ErrorManager;
+using GRF.Threading;
+using SDE.ApplicationConfiguration;
+using SDE.Editor.Backups;
+using SDE.View.Dialogs;
+using TokeiLibrary;
+using TokeiLibrary.WPF;
+using TokeiLibrary.WPF.Styles;
+using TokeiLibrary.WPF.Styles.ListView;
+using Utilities.Services;
+using Extensions = SDE.Core.Extensions;
+
+namespace SDE.Editor.Backups {
+	/// <summary>
+	/// Interaction logic for ScriptEditDialog.xaml
+	/// </summary>
+	public partial class BackupDialog : TkWindow {
+		private readonly RangeObservableCollection<BackupViewModel> _items;
+
+		public BackupDialog() : base("Backups manager", "archive.png", SizeToContent.Manual, ResizeMode.CanResize) {
+			InitializeComponent();
+			Extensions.SetMinimalSize(this);
+
+			WindowStartupLocation = WindowStartupLocation.CenterOwner;
+
+			ListViewDataTemplateHelper.GenerateListViewTemplateNew(_listView, new ListViewDataTemplateHelper.GeneralColumnInfo[] {
+				new ListViewDataTemplateHelper.GeneralColumnInfo {Header = "Date", DisplayExpression = nameof(BackupViewModel.Date), SearchGetAccessor = nameof(BackupViewModel.DateInt), TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, FixedWidth = 140 },
+				new ListViewDataTemplateHelper.RangeColumnInfo {Header = "Database path", DisplayExpression = nameof(BackupViewModel.DbPath), SearchGetAccessor = nameof(BackupViewModel.DbPath), IsFill = true, MinWidth = 100, TextWrapping = TextWrapping.Wrap }
+			}, null, new string[] { "Normal", "{DynamicResource TextForeground}" });
+
+			_items = new RangeObservableCollection<BackupViewModel>();
+			_listView.ItemsSource = _items;
+			_load();
+			Loaded += delegate {
+				_listView.Dispatch(p => p.ScrollToCenterOfView(_items.Last()));
+			};
+			ListViewExtensions.DisableContextMenuIfEmpty(_listView);
+		}
+
+		private void _load() {
+			_items.AddRange(BackupManager.Instance.GetBackups().Select(p => new BackupViewModel(p)));
+		}
+
+		protected override void GRFEditorWindowKeyDown(object sender, KeyEventArgs e) {
+			if (e.Key == Key.Escape)
+				Close();
+		}
+
+		private void _buttonOk_Click(object sender, RoutedEventArgs e) {
+			Close();
+		}
+
+		private void _miRestore_Click(object sender, RoutedEventArgs e) {
+			BackupViewModel view = _listView.SelectedItem as BackupViewModel;
+
+			if (view != null) {
+				ProgressDialog dialog = new ProgressDialog("Restoring databases...", "Restoring...");
+				dialog.Loaded += delegate {
+					IsEnabled = false;
+
+					GrfThread.Start(delegate {
+						try {
+							BackupManager.Instance.Restore(view.BackupDate);
+							dialog.Dispatch(p => p.Terminate());
+							this.Dispatch(p => p.IsEnabled = true);
+							ErrorHandler.HandleException("Successfully restored to " + view.Date + ". Reload your database for the changes to take effect.", ErrorLevel.NotSpecified);
+						}
+						catch (Exception err) {
+							dialog.Dispatch(p => p.Terminate());
+							this.Dispatch(p => p.IsEnabled = true);
+							ErrorHandler.HandleException(err);
+						}
+					});
+				};
+
+				dialog.ShowDialog();
+			}
+		}
+
+		private void _miDelete_Click(object sender, RoutedEventArgs e) {
+			_items.Disable();
+			foreach (BackupViewModel item in _listView.SelectedItems) {
+				BackupManager.Instance.RemoveBackup(item.BackupDate, false);
+				_items.Remove(item);
+			}
+			_items.UpdateAndEnable();
+		}
+
+		private void _miSelect_Click(object sender, RoutedEventArgs e) {
+			try {
+				BackupViewModel view = _listView.SelectedItem as BackupViewModel;
+
+				if (view != null) {
+					if (Directory.Exists(view.DbPath)) {
+						OpeningService.FilesOrFolders(view.DbPath);
+					}
+					else {
+						ErrorHandler.HandleException("Directory not found " + view.DbPath + ".");
+					}
+				}
+			}
+			catch (Exception err) {
+				ErrorHandler.HandleException(err);
+			}
+		}
+
+		private void _miExport_Click(object sender, RoutedEventArgs e) {
+			BackupViewModel view = _listView.SelectedItem as BackupViewModel;
+
+			if (view != null) {
+				string folder = PathRequest.FolderEditor();
+
+				if (folder != null) {
+					BackupManager.Instance.Export(folder, view.BackupDate);
+
+					try {
+						OpeningService.OpenFolder(folder);
+					}
+					catch { }
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,10 @@
+*.vsidx
+*/Release/*
+*/Debug/*
+*/obj/*
+.vs
+packages
+bin
+_ReSharper
+/*.user
+/*.suo

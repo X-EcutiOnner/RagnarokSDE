@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
-using Database;
 using ErrorManager;
+using SDE.Databases;
+using SDE.Editor.Database;
 using SDE.Editor.Generic;
-using SDE.Editor.Generic.Lists;
-using SDE.Editor.Generic.TabsMakerCore;
+using SDE.Editor.Generic.DbTabs;
+using SDE.View.Editors;
 using TokeiLibrary;
 using TokeiLibrary.WPF.Styles;
-using TokeiLibrary.WPF.Styles.ListView;
 using Utilities;
 using Tuple = Database.Tuple;
 
@@ -19,8 +19,8 @@ namespace SDE.View.Dialogs {
 	/// Interaction logic for ScriptEditDialog.xaml
 	/// </summary>
 	public partial class AddRangeDialog : TkWindow {
-		private Database.Tuple _based;
-		private readonly GDbTab _tab;
+		private Tuple _sourceTuple;
+		private readonly DbTab _tab;
 
 		public AddRangeDialog(SdeEditor editor)
 			: base("Add range...", "add.png", SizeToContent.WidthAndHeight, ResizeMode.NoResize) {
@@ -32,33 +32,33 @@ namespace SDE.View.Dialogs {
 				throw new Exception("No table selected.");
 			}
 
-			if (!(_tab is GDbTabWrapper<int, ReadableTuple<int>>)) {
+			if (!(_tab is DbTab)) {
 				throw new Exception("This table doesn't support this operation.");
 			}
 
-			List<ServerDbs> dbSources = new List<ServerDbs>();
+			List<DataSource> sources = new List<DataSource>();
 
-			dbSources.Add(_tab.DbComponent.DbSource);
+			sources.Add(_tab.Database.Source);
 
-			if (_tab.DbComponent.DbSource.AdditionalTable != null) {
-				dbSources.Add(_tab.DbComponent.DbSource.AdditionalTable);
+			if (_tab.Database.Source.ImportTable != null) {
+				sources.Add(_tab.Database.Source.ImportTable);
 			}
 
-			_destTable.ItemsSource = dbSources;
+			_destTable.ItemsSource = sources;
 			_destTable.SelectedIndex = 0;
 			
-			WpfUtils.AddMouseInOutEffects(_imReset);
+			WpfUtilities.AddMouseInOutHandEffect(_imReset);
 
 			this.Loaded += delegate {
 				_tbRange.Text = "1";
 				_tbFrom.Text = "0";
 
-				if (_tab._listView.SelectedItem != null) {
-					_based = (Tuple) _tab._listView.SelectedItem;
-					_tbBasedOn.Text = _based.GetKey<int>().ToString(CultureInfo.InvariantCulture);
+				if (_tab.SelectedItem != null) {
+					_sourceTuple = _tab.SelectedItem;
+					_tbBasedOn.Text = _sourceTuple.GetKey<int>().ToString(CultureInfo.InvariantCulture);
 					_imReset.Visibility = System.Windows.Visibility.Visible;
 
-					_tbFrom.Text = (_based.GetKey<int>() + 1).ToString(CultureInfo.InvariantCulture);
+					_tbFrom.Text = (_sourceTuple.GetKey<int>() + 1).ToString(CultureInfo.InvariantCulture);
 				}
 			};
 
@@ -85,20 +85,20 @@ namespace SDE.View.Dialogs {
 		}
 
 		private void _addRange() {
-			var tab = _tab.To<int>();
+			var tab = _tab;
 
 			var range = FormatConverters.IntOrHexConverter(_tbRange.Text);
 			var from = FormatConverters.IntOrHexConverter(_tbFrom.Text);
-			var table = tab.GetDb<int>((ServerDbs) _destTable.SelectedItem).Table;
+			var table = SdeEditor.Project.GetTable((DataSource)_destTable.SelectedItem);
 
 			try {
 				table.Commands.Begin();
 
 				for (int i = 0; i < range; i++) {
-					var tuple = new ReadableTuple<int>(i + from, tab.DbComponent.AttributeList);
+					var tuple = new ReadableTuple(i + from, tab.Database.AttributeList);
 
-					if (_based != null) {
-						tuple.Copy(_based);
+					if (_sourceTuple != null) {
+						tuple.Copy(_sourceTuple);
 						tuple.SetRawValue(0, i + from);
 					}
 
@@ -119,18 +119,19 @@ namespace SDE.View.Dialogs {
 		private void _imReset_MouseLeftButtonUp(object sender, MouseButtonEventArgs e) {
 			_tbBasedOn.Text = "None";
 			_imReset.Visibility = Visibility.Collapsed;
-			_based = null;
+			_sourceTuple = null;
 		}
 
 		private void _buttonSearch_Click(object sender, RoutedEventArgs e) {
 			try {
-				SelectFromDialog dialog = new SelectFromDialog(_tab.To<int>().Table, _tab.DbComponent.DbSource, _tab._listView.SelectedItem == null ? "" : (_tab._listView.SelectedItem as ReadableTuple<int>).Key.ToString());
+				SelectTupleDialog dialog = new SelectTupleDialog(_tab.Table, _tab.Database.Source, _tab.SelectedItem == null ? "" : _tab.SelectedItem.Key.ToString());
+				
 				if (dialog.ShowDialog() == true) {
 					var id = Int32.Parse(dialog.Id);
 
-					_based = _tab.To<int>().GetMetaTable<int>(_tab.DbComponent.DbSource).TryGetTuple(id);
+					_sourceTuple = SdeEditor.Project.GetMergedTable(_tab.Database.Source).TryGetTuple(id);
 
-					if (_based != null) {
+					if (_sourceTuple != null) {
 						_tbBasedOn.Text = id.ToString(CultureInfo.InvariantCulture);
 						_imReset.Visibility = Visibility.Visible;
 					}

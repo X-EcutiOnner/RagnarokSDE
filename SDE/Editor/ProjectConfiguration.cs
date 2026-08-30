@@ -30,8 +30,7 @@ namespace SDE.Editor {
 		public static event ConfigAskerChangedDelegate ConfigAskerChanged;
 
 		public static void OnConfigAskerChanged() {
-			ConfigAskerChangedDelegate handler = ConfigAskerChanged;
-			if (handler != null) handler();
+			ConfigAskerChanged?.Invoke();
 		}
 
 		// The information regarding the username and the password is not meant to be strong.
@@ -51,13 +50,12 @@ namespace SDE.Editor {
 			set { ConfigAsker["[Server database editor - Database path]"] = value; }
 		}
 
-		public static string InternalDatabasePath {
-			get { return ConfigAsker["[Server database editor - Database path]", @"C:\RO\db\pre-re"]; }
-		}
+		public static string DatabaseDbPath => Path.GetDirectoryName(DatabasePath);
+		public static string DatabaseSubDbPath => Path.GetFileNameWithoutExtension(DatabasePath);
 
-		public static string SdeEditorResources {
-			get { return ConfigAsker["[Server database editor - Resources]", ""]; }
-			set { ConfigAsker["[Server database editor - Resources]"] = value; }
+		public static List<string> SdeEditorResources {
+			get { return Methods.StringToList(ConfigAsker["[Server database editor - Resources]", ""]); }
+			set { ConfigAsker["[Server database editor - Resources]"] = Methods.ListToString(value); }
 		}
 
 		public static bool SynchronizeWithClientDatabases {
@@ -80,7 +78,7 @@ namespace SDE.Editor {
 			set { ConfigAsker["[Server database editor - Client - Card Illustration]"] = value; }
 		}
 
-		public static string ClientCardPrefixes {
+		public static string ClientCardAffixes {
 			get { return ConfigAsker["[Server database editor - Client - Card prefixes]", "data\\cardprefixnametable.txt"]; }
 			set { ConfigAsker["[Server database editor - Client - Card prefixes]"] = value; }
 		}
@@ -130,7 +128,17 @@ namespace SDE.Editor {
 			set { ConfigAsker["[Server database editor - Client - Quest]"] = value; }
 		}
 
-		public static string ClientCheevo {
+		public static string ClientQuestLua {
+			get { return ConfigAsker["[Server database editor - Client - Quest lua]", "System\\OngoingQuestInfoList_True.lub"]; }
+			set { ConfigAsker["[Server database editor - Client - Quest lua]"] = value; }
+		}
+
+		public static string ClientTitle {
+			get { return ConfigAsker["[Server database editor - Client - Title]", "data\\luafiles514\\lua files\\datainfo\\titletable.lub"]; }
+			set { ConfigAsker["[Server database editor - Client - Title]"] = value; }
+		}
+
+		public static string ClientAchievement {
 			get { return ConfigAsker["[Server database editor - Client - Cheevo]", "System\\achievement_list.lub"]; }
 			set { ConfigAsker["[Server database editor - Client - Cheevo]"] = value; }
 		}
@@ -341,6 +349,8 @@ namespace SDE.Editor {
 			get { return Int32.Parse(ConfigAsker["[Server database editor - Rates - Drop mvp boss]", "100"]); }
 			set { ConfigAsker["[Server database editor - Rates - Drop mvp boss]"] = value.ToString(CultureInfo.InvariantCulture); }
 		}
+
+		public static bool IsRenewal { get; set; }
 	}
 
 	public class GetSetSetting {

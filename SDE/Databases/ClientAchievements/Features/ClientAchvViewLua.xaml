@@ -1,0 +1,169 @@
+﻿<UserControl x:Class="SDE.Databases.ClientAchievements.Features.ClientAchvViewLua"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:SDE.Databases.Quests.Features"
+			 xmlns:f="clr-namespace:SDE.Databases.Generic.Controls"
+             xmlns:TokeiLibrary="clr-namespace:TokeiLibrary;assembly=TokeiLibrary"
+             xmlns:Avalon="clr-namespace:SDE.Core.Avalon"
+             xmlns:ListView="clr-namespace:TokeiLibrary.WPF.Styles.ListView;assembly=TokeiLibrary"
+             xmlns:Tmc="clr-namespace:SDE.Editor.Generic.DbTabs"
+             xmlns:Converters="clr-namespace:SDE.Databases.Generic.Converters"
+			 xmlns:wpfbugfix="clr-namespace:TokeiLibrary.WpfBugFix;assembly=TokeiLibrary"
+             xmlns:Common="clr-namespace:SDE.Databases.Generic.Common"
+             xmlns:ClientAchvCommon="clr-namespace:SDE.Databases.ClientAchievements.Common"
+			 xmlns:styles="clr-namespace:TokeiLibrary.WPF.Styles;assembly=TokeiLibrary"
+			 xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
+			 Foreground="{DynamicResource TextForeground}"
+			 mc:Ignorable="d" 
+			 MaxWidth="800"
+			 HorizontalAlignment="Left"
+			 d:DesignWidth="800">
+	<UserControl.Resources>
+		<Converters:ItemPreviewConverter x:Key="ItemPreviewConverter"/>
+		<Converters:MobPreviewConverter x:Key="MobPreviewConverter"/>
+		<Converters:TitlePreviewConverter x:Key="TitlePreviewConverter"/>
+		<Converters:WidthToGridLengthConverter x:Key="WidthToGridLengthConverter"/>
+		<Converters:AchvNameConverter x:Key="AchvNameConverter"/>
+	</UserControl.Resources>
+	<Grid x:Name="_gridContainer" IsEnabled="{Binding IsModelValid}">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="auto" />
+			<RowDefinition />
+		</Grid.RowDefinitions>
+		<f:HorizontalGrid ColumnCount="2" x:Name="_gridProperties">
+			<f:Property Label="Achievement ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Id}">
+				<f:Property.Editor>
+					<f:ValidationTextBox IsReadOnly="True" Text="{Binding Id}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:EditKeyButton SourceField="{Binding Id}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Title" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Title}" ToolTip="Title of the achievement.">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Icon" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Group}" ToolTip="The icon displayed in the achievement window. It isn't used elsewhere. You can make custom icons by adding new entries to data\texture\À¯ÀúÀÎÅÍÆäÀÌ½º\achievement_re\" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Group, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:AchievementGroupImage SourceField="{Binding Group}" DataValid="{Binding GroupValid}" Height="24" />
+					<f:SelectTupleButton Source="AchievementIcons" SourceField="{Binding Group}" />
+				</f:Property.Extras>
+			</f:Property>
+			
+			<f:Property Label="Display" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding UiType}" ToolTip="The icon displayed in the achievement window. It isn't used elsewhere. You can make custom icons by adding new entries to data\texture\À¯ÀúÀÎÅÍÆäÀÌ½º\achievement_re\" >
+				<f:Property.Editor>
+					<ComboBox ItemsSource="{Binding Path=(ClientAchvCommon:ClientAchvUiTypeInfo.AllVisibleOnly)}" SelectedItem="{Binding UiType, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Major" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Major}" ToolTip="The primary tab this achievement will belong to in the achievement window (it's a 1-based index).">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Major, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Minor" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Minor}" ToolTip="The secondary tab this achievement will belong to in the achievement window (it's a 1-based index).">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Minor, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Summary" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Summary}" ToolTip="The summary is what is shown in the middle panel of the achievement window, where the achievements are listed.">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Summary, UpdateSourceTrigger=PropertyChanged}" MinHeight="70" TextWrapping="Wrap" BoxVerticalAlignment="Top" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Details" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Details}" ToolTip="The details is what is shown in the right panel of the achievement window, when an achievement is selected.">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Details, UpdateSourceTrigger=PropertyChanged}" MinHeight="70" TextWrapping="Wrap" BoxVerticalAlignment="Top" />
+				</f:Property.Editor>
+			</f:Property>
+			
+			<TextBlock Style="{StaticResource DbTextBlock}" Margin="3 10 3 3" Text="Rewards" FontStyle="Italic" />
+			<f:Separator />
+
+			<f:Property Label="Title ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding RewardTitle}" ToolTip="The reward title ID, which is defined in titletable.lub. You can only have 1 title per achievement.">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding RewardTitle, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding RewardTitle, Converter={StaticResource TitlePreviewConverter}}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:SelectTupleButton Source="Titles" SourceField="{Binding RewardTitle}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Buff" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding RewardBuff}" ToolTip="The reward buff, if any. The value is... well I don't know right now, to fill later.">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding RewardBuff, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Item ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding RewardItem}" ToolTip="The reward item.">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding RewardItem, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding RewardItem, Converter={StaticResource ItemPreviewConverter}}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:SelectTupleButton Source="Items" SourceField="{Binding RewardItem}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Score" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Score}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Score, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<TextBlock Style="{StaticResource DbTextBlock}" Margin="3 10 3 3" Text="Resources" FontStyle="Italic" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Resources}" />
+			<f:Separator />
+
+			<Grid>
+				<wpfbugfix:RangeListView x:Name="_lvResources" Grid.Row="1" Margin="3"
+						 ItemsSource="{Binding Resources, UpdateSourceTrigger=PropertyChanged}"
+						 MinWidth="200"
+						 MinHeight="250"
+						 MaxHeight="250"
+						 TextSearch.TextPath="Id"
+						 SelectionChanged="_lvResources_SelectionChanged"
+						 FocusVisualStyle="{x:Null}">
+				</wpfbugfix:RangeListView>
+			</Grid>
+
+			<f:HorizontalGrid ColumnCount="1" x:Name="_gridResources" IsEnabled="{Binding IsResourceSelected}">
+				<f:Property Label="Id" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding SelectedResource.Id}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding SelectedResource.Id, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding SelectedResource.PreviewId}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Text" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding SelectedResource.Text}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding SelectedResource.Text, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Count" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding SelectedResource.Count}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding SelectedResource.Count, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Shortcut" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding SelectedResource.Shortcut}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding SelectedResource.Shortcut, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding SelectedResource.Shortcut, Converter={StaticResource AchvNameConverter}}" />
+					</f:Property.Editor>
+					<f:Property.Extras>
+						<f:SelectTupleButton Source="Achievement" SourceField="{Binding SelectedResource.Shortcut}" />
+					</f:Property.Extras>
+				</f:Property>
+			</f:HorizontalGrid>
+		</f:HorizontalGrid>
+	</Grid>
+</UserControl>

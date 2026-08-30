@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
 using SDE.ApplicationConfiguration;
-using SDE.Editor.Engines;
+using SDE.Editor.Files;
 
 namespace SDE.Editor.Writers {
 	// This class implements a TextReader for reading characters to a Stream. 
@@ -133,7 +133,7 @@ namespace SDE.Editor.Writers {
 			if (path == null || encoding == null)
 				throw new ArgumentNullException((path == null ? "path" : "encoding"));
 
-			Stream stream = IOHelper.IsSystemFile(path) ? new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultFileStreamBufferSize, FileOptions.SequentialScan) : IOHelper.OpenRead(path);
+			Stream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultFileStreamBufferSize, FileOptions.SequentialScan);
 			Init(stream, encoding, detectEncodingFromByteOrderMarks, bufferSize);
 		}
 

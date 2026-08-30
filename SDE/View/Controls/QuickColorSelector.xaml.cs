@@ -6,11 +6,13 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using ColorPicker;
-using ColorPicker.Sliders;
+using GRF.Graphics;
 using GRF.Image;
 using GrfToWpfBridge;
 using TokeiLibrary;
 using Utilities;
+using static ColorPicker.ColorChangedDelegate;
+using static GrfToWpfBridge.ActRenderer.FrameRendererConfiguration;
 
 namespace SDE.View.Controls {
 	/// <summary>
@@ -19,11 +21,12 @@ namespace SDE.View.Controls {
 	public partial class QuickColorSelector : UserControl {
 		private static bool _isShown;
 		private static readonly Brush _sharedGridBackground;
-		private static readonly HashSet<char> _allowed = new HashSet<char> {'a', 'b', 'c', 'd', 'e', 'f'};
+		private static readonly HashSet<char> _allowed = new HashSet<char> { 'a', 'b', 'c', 'd', 'e', 'f' };
 		private Point _oldPosition;
 		private ConfigAskerSetting _setting;
+		private QuickSetting<GrfColor> _setting2;
 
-		
+
 		public Thickness OverrideMargin {
 			get { return (Thickness)GetValue(OverrideMarginProperty); }
 			set { SetValue(OverrideMarginProperty, value); }
@@ -41,9 +44,9 @@ namespace SDE.View.Controls {
 		}
 
 		static QuickColorSelector() {
-			VisualBrush brush = new VisualBrush {Viewport = new Rect(0, 0, 16, 16), ViewportUnits = BrushMappingMode.Absolute, TileMode = TileMode.Tile};
+			VisualBrush brush = new VisualBrush { Viewport = new Rect(0, 0, 16, 16), ViewportUnits = BrushMappingMode.Absolute, TileMode = TileMode.Tile };
 			//Grid grid = new Grid();
-			Image image = new Image {Source = ApplicationManager.PreloadResourceImage("background.png")};
+			Image image = new Image { Source = ApplicationManager.PreloadResourceImage("background.png") };
 			image.SetValue(RenderOptions.BitmapScalingModeProperty, BitmapScalingMode.NearestNeighbor);
 			image.Width = 256;
 			image.Height = 256;
@@ -55,15 +58,15 @@ namespace SDE.View.Controls {
 		public QuickColorSelector() {
 			InitializeComponent();
 
-			_border.MouseEnter += new MouseEventHandler(_quickColorSelector_MouseEnter);
-			_border.MouseLeave += new MouseEventHandler(_quickColorSelector_MouseLeave);
+			_border.MouseEnter += _quickColorSelector_MouseEnter;
+			_border.MouseLeave += _quickColorSelector_MouseLeave;
 			_previewPanelBg.Fill = new SolidColorBrush(Colors.White);
-			_border.MouseDown += new MouseButtonEventHandler(_quickColorSelector_MouseDown);
-			_border.MouseMove += new MouseEventHandler(_quickColorSelector_MouseMove);
-			_border.DragEnter += new DragEventHandler(_quickColorSelector_DragEnter);
+			_border.MouseDown += _quickColorSelector_MouseDown;
+			_border.MouseMove += _quickColorSelector_MouseMove;
+			_border.DragEnter += _quickColorSelector_DragEnter;
 			_border.DragOver += _quickColorSelector_DragEnter;
-			_border.DragLeave += new DragEventHandler(_quickColorSelector_DragLeave);
-			_border.Drop += new DragEventHandler(_quickColorSelector_Drop);
+			_border.DragLeave += _quickColorSelector_DragLeave;
+			_border.Drop += _quickColorSelector_Drop;
 
 			_grid.Background = _sharedGridBackground;
 		}
@@ -91,9 +94,9 @@ namespace SDE.View.Controls {
 		public GrfColor InitialColor { get; set; }
 
 		public Color Color {
-			get { return ((SolidColorBrush) _previewPanelBg.Fill).Color; }
+			get { return ((SolidColorBrush)_previewPanelBg.Fill).Color; }
 			set {
-				if (value == ((SolidColorBrush) _previewPanelBg.Fill).Color)
+				if (value == ((SolidColorBrush)_previewPanelBg.Fill).Color)
 					return;
 
 				_previewPanelBg.Fill = new SolidColorBrush(value);
@@ -101,21 +104,21 @@ namespace SDE.View.Controls {
 			}
 		}
 
-		public event SliderGradient.GradientPickerColorEventHandler ColorChanged;
-		public event SliderGradient.GradientPickerColorEventHandler PreviewColorChanged;
+		public event ColorChangedEventHandler_Old ColorChanged;
+		public event ColorChangedEventHandler_Old PreviewColorChanged;
 
 		public void OnPreviewColorChanged(Color value) {
-			SliderGradient.GradientPickerColorEventHandler handler = PreviewColorChanged;
-			if (handler != null) handler(this, value);
+			PreviewColorChanged?.Invoke(this, value);
 		}
 
 		public void OnColorChanged(Color value) {
 			if (_setting != null && _autoSet) {
 				_setting.Set(Color.ToGrfColor());
 			}
-
-			SliderGradient.GradientPickerColorEventHandler handler = ColorChanged;
-			if (handler != null) handler(this, value);
+			if (_setting2 != null && _autoSet) {
+				_setting2.Set(Color.ToGrfColor());
+			}
+			ColorChanged?.Invoke(this, value);
 		}
 
 		private void _quickColorSelector_DragLeave(object sender, DragEventArgs e) {
@@ -124,7 +127,7 @@ namespace SDE.View.Controls {
 
 		private void _quickColorSelector_Drop(object sender, DragEventArgs e) {
 			if (e.Data.GetData("GrfColor") != null) {
-				GrfColor color = e.Data.GetData("GrfColor") as GrfColor;
+				GrfColor color = (GrfColor)e.Data.GetData("GrfColor");
 
 				if (color != null) {
 					InitialColor = Color.ToGrfColor();
@@ -194,9 +197,9 @@ namespace SDE.View.Controls {
 
 		private void _quickColorSelector_MouseMove(object sender, MouseEventArgs e) {
 			if (e.LeftButton == MouseButtonState.Pressed) {
-				GRF.Graphics.Point dist = e.GetPosition(this).ToGrfPoint() - _oldPosition.ToGrfPoint();
+				TkVector2 dist = e.GetPosition(this).ToTkVector2() - _oldPosition.ToTkVector2();
 
-				if (dist.Lenght > 4) {
+				if (dist.Length > 4) {
 					DataObject data = new DataObject();
 					data.SetData("GrfColor", Color.ToGrfColor());
 					data.SetText(Color.ToGrfColor().ToHexString());
@@ -244,9 +247,9 @@ namespace SDE.View.Controls {
 
 			Rectangle previewPanelClosure = previewPanel;
 
-			dialog.PickerControl.ColorChanged += delegate(object s, Color newColor) {
-				previewPanelClosure.Fill = new SolidColorBrush(newColor);
-				OnPreviewColorChanged(newColor);
+			dialog.PickerControl.ColorChanged += delegate (object s, ColorEventArgs args) {
+				previewPanelClosure.Fill = new SolidColorBrush(args.Value);
+				OnPreviewColorChanged(args.Value);
 			};
 
 			dialog.Closed += delegate {
@@ -264,6 +267,24 @@ namespace SDE.View.Controls {
 			dialog.Show();
 		}
 
+		public void Init(QuickSetting<GrfColor> setting, bool showReset = true, bool autoSet = false) {
+			_setting2 = setting;
+			_autoSet = autoSet;
+
+			if (_setting2 != null) {
+				_showReset = showReset;
+
+				if (_showReset)
+					_reset.Visibility = _setting2.IsDefault ? Visibility.Collapsed : Visibility.Visible;
+
+				if (autoSet) {
+					Color = new GrfColor(_setting2.Get()).ToColor();
+				}
+
+				_setting2.PropertyChanged += _setting2_PreviewPropertyChanged;
+			}
+		}
+
 		public void Init(ConfigAskerSetting setting, bool showReset = true, bool autoSet = false) {
 			_setting = setting;
 			_autoSet = autoSet;
@@ -278,13 +299,20 @@ namespace SDE.View.Controls {
 					Color = new GrfColor(_setting.Get()).ToColor();
 				}
 
-				_setting.PreviewPropertyChanged += new ConfigAskerSetting.ConfigAskerSettingEventHandler(_setting_PreviewPropertyChanged);
+				_setting.PreviewPropertyChanged += _setting_PreviewPropertyChanged;
+			}
+		}
+
+		private void _setting2_PreviewPropertyChanged() {
+			if (_showReset) {
+				_reset.Visibility = _setting2.IsDefault ? Visibility.Collapsed : Visibility.Visible;
 			}
 		}
 
 		private void _setting_PreviewPropertyChanged(object sender, string oldvalue, string newvalue) {
-			if (_showReset)
+			if (_showReset) {
 				_reset.Visibility = _setting.Default.Replace("0x", "#") == newvalue.Replace("0x", "#") ? Visibility.Collapsed : Visibility.Visible;
+			}
 		}
 
 		private void _reset_Click(object sender, RoutedEventArgs e) {
@@ -293,6 +321,12 @@ namespace SDE.View.Controls {
 				if (_showReset)
 					_reset.Visibility = _setting.IsDefault ? Visibility.Collapsed : Visibility.Visible;
 				Color = new GrfColor(_setting.Get()).ToColor();
+			}
+			if (_setting2 != null) {
+				_setting2.Set(_setting2.ConverterTo(_setting2.Default));
+				if (_showReset)
+					_reset.Visibility = _setting2.IsDefault ? Visibility.Collapsed : Visibility.Visible;
+				Color = new GrfColor(_setting2.Get()).ToColor();
 			}
 		}
 	}

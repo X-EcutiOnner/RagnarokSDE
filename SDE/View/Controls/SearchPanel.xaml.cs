@@ -141,20 +141,20 @@ namespace SDE.View.Controls {
 			_textArea = textArea;
 			_currentDocument = textArea.Document;
 			_renderer = new SearchResultBackgroundRenderer { MarkerBrush = new SolidColorBrush(Colors.Yellow) };
-			_searchTextBox.TextChanged += new TextChangedEventHandler(_searchTextBox_TextChanged);
+			_searchTextBox.TextChanged += _searchTextBox_TextChanged;
 
 			_adorner = new SearchPanelAdorner(textArea, this);
 
 			if (_currentDocument != null)
-				_currentDocument.TextChanged += new EventHandler(_currentDocument_TextChanged);
+				_currentDocument.TextChanged += _currentDocument_TextChanged;
 
-			_textArea.DocumentChanged += new EventHandler(_textArea_DocumentChanged);
-			_textArea.PreviewKeyDown += new KeyEventHandler(_textArea_PreviewKeyDown);
-			_searchTextBox.LostFocus += new RoutedEventHandler(_searchTextBox_LostFocus);
-			_replaceTextBox.LostFocus += new RoutedEventHandler(_replaceTextBox_LostFocus);
-			_searchTextBox.GotFocus += new RoutedEventHandler(_searchTextBox_GotFocus);
-			_replaceTextBox.GotFocus += new RoutedEventHandler(_replaceTextBox_GotFocus);
-			KeyDown +=new KeyEventHandler(_searchPanel_KeyDown);
+			_textArea.DocumentChanged += _textArea_DocumentChanged;
+			_textArea.PreviewKeyDown += _textArea_PreviewKeyDown;
+			_searchTextBox.LostFocus += _searchTextBox_LostFocus;
+			_replaceTextBox.LostFocus += _replaceTextBox_LostFocus;
+			_searchTextBox.GotFocus += _searchTextBox_GotFocus;
+			_replaceTextBox.GotFocus += _replaceTextBox_GotFocus;
+			KeyDown += _searchPanel_KeyDown;
 
 			CommandBindings.Add(new CommandBinding(Find, (sender, e) => Open()));
 			CommandBindings.Add(new CommandBinding(SearchCommands.FindNext, (sender, e) => FindNext()));
@@ -299,9 +299,7 @@ namespace SDE.View.Controls {
 		public event EventHandler<SearchOptionsChangedEventArgs> SearchOptionsChanged;
 
 		protected virtual void OnSearchOptionsChanged(SearchOptionsChangedEventArgs e) {
-			if (SearchOptionsChanged != null) {
-				SearchOptionsChanged(this, e);
-			}
+			SearchOptionsChanged?.Invoke(this, e);
 		}
 
 		public void FindNext() {

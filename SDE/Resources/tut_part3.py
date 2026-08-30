@@ -9,7 +9,7 @@
 # the ID from another tuple.
 
 item_db[500] = item_db[501]
-item_db[500, "name"] = item_db[500, "name"].replace("Red", "Purple")
+item_db[500, "Name"] = item_db[500, "Name"].replace("Red", "Purple")
 
 # To add a new empty item :
 item_db.Add(499)

@@ -7,47 +7,43 @@ using Database;
 using ErrorManager;
 using GRF.FileFormats;
 using SDE.ApplicationConfiguration;
-using SDE.Editor.Engines.Parsers;
-using SDE.Editor.Generic;
-using SDE.Editor.Generic.Core;
-using SDE.Editor.Generic.Lists;
-using SDE.Editor.Generic.Parsers;
-using SDE.Editor.Generic.TabsMakerCore;
+using SDE.Databases;
+using SDE.Editor.Database;
+using SDE.Editor.Generic.DbTabs;
+using SDE.View;
 using TokeiLibrary;
 using TokeiLibrary.WPF;
-using TokeiLibrary.WPF.Styles.ListView;
-using Utilities.Extension;
 
 namespace SDE.Editor {
 	public class FieldMapper {
-		public AttributeList Get(ServerDbs db) {
-			var res = _allTables.Values.FirstOrDefault(p => p.DbSource == db);
+		public AttributeList Get(DataSource source) {
+			var res = _allTables.Values.FirstOrDefault(p => p.Source == source);
 
 			if (res == null)
-				throw new Exception("No table found which uses the ServerDb [" + db.Filename + "]");
+				throw new Exception("No table found which uses the DataSources [" + source + "]");
 
 			return res.AttributeList;
 		}
 
-		public AbstractDb<TKey> GetCopyDb<TKey>(ServerDbs db) {
-			var res = _allTables.Values.FirstOrDefault(p => p.DbSource == db);
+		public BaseDatabase GetCopyDb<TKey>(DataSource source) {
+			var res = _allTables.Values.FirstOrDefault(p => p.Source == source);
 
 			if (res == null)
-				throw new Exception("No table found which uses the ServerDb [" + db.Filename + "]");
+				throw new Exception("No table found which uses the DataSources [" + source + "]");
 
-			return res.To<TKey>().Copy();
+			return res.Copy();
 		}
 
-		public ServerDbs DbDest;
-		public ServerDbs DbImport;
+		public DataSource SourceDestination;
+		public DataSource SourceImport;
 
 		// Leave null to copy all fields
 		public DbAttribute[] Mapping;
 		public int LastMappedIndex;
-		private readonly Dictionary<ServerDbs, BaseDb> _allTables;
+		private readonly Dictionary<DataSource, BaseDatabase> _allTables;
 		private bool _allowCutLine = true;
 
-		public FieldMapper(int maxElements, Dictionary<ServerDbs, BaseDb> allTables) {
+		public FieldMapper(int maxElements, Dictionary<DataSource, BaseDatabase> allTables) {
 			LastMappedIndex = maxElements;
 			_allTables = allTables;
 		}
@@ -72,7 +68,7 @@ namespace SDE.Editor {
 			List<DbAttribute> attributes = new List<DbAttribute>();
 
 			if (Mapping == null)
-				attributes = Get(DbImport).Attributes;
+				attributes = Get(SourceImport).Attributes;
 			else {
 				for (int i = 0; i < Mapping.Length; i += 2) {
 					attributes.Add(Mapping[i]);
@@ -94,7 +90,7 @@ namespace SDE.Editor {
 				box.Tag = attribute;
 				box.SetValue(Grid.RowProperty, index / gridCopy.ColumnDefinitions.Count + 1);
 				box.SetValue(Grid.ColumnProperty, index % gridCopy.ColumnDefinitions.Count);
-				WpfUtils.AddMouseInOutEffectsBox(box);
+				WpfUtilities.AddMouseInOutUnderline(box);
 
 				gridCopy.Children.Add(box);
 				boxes.Add(box);
@@ -126,91 +122,94 @@ namespace SDE.Editor {
 			throw new OperationCanceledException();
 		}
 
-		public void Map<TKey>(GDbTabWrapper<TKey, ReadableTuple<TKey>> tab, string file, DbAttribute[] mappedFields) {
-			AbstractDb<TKey> db = GetCopyDb<TKey>(DbImport);
-			db.DummyInit(tab.ProjectDatabase);
-
-			if (db.DbSource == ServerDbs.CItems) {
-				if (file.IsExtension(".lua", ".lub"))
-					db.DbLoader = (d, idb) => DbIOClientItems.LoadEntry((AbstractDb<int>)(object)db, file);
-				else {
-					db.DbLoader = (d, idb) => DbIOClientItems.LoadData((AbstractDb<int>)(object)db, file, mappedFields[0], _allowCutLine);
-				}
-			}
-
-			var method = db.DbLoader;
-			db.DbLoader = (d, idb) => {
-				db.Table.EnableRawEvents = false;
-				method(d, idb);
-			};
-
-			try {
-				if ((tab.DbComponent.DbSource & ServerDbs.CItems) != ServerDbs.CItems) {
-					DebugStreamReader.ToServerEncoding = true;
-				}
-				else {
-					DebugStreamReader.ToClientEncoding = true;
-				}
-
-				db.LoadFromClipboard(file);
-			}
-			finally {
-				DebugStreamReader.ToServerEncoding = false;
-				DebugStreamReader.ToClientEncoding = false;
-			}
-
-			var table = tab.Table;
-
-			table.Commands.Begin();
-
-			try {
-				foreach (var cTuple in db.Table.FastItems) {
-					var sTuple = table.TryGetTuple(cTuple.Key);
-					if (sTuple == null) continue;
-
-					for (int i = 0; i < mappedFields.Length; i += 2) {
-						var cValue = cTuple.GetValue<string>(mappedFields[i]);
-						var sValue = sTuple.GetValue<string>(mappedFields[i + 1]);
-
-						if (cValue != sValue) {
-							if (_isNoEmptyFields(mappedFields[i + 1], cValue, sValue)) continue;
-							table.Commands.Set(sTuple, mappedFields[i + 1], cValue);
-						}
-					}
-				}
-			}
-			catch (Exception err) {
-				ErrorHandler.HandleException(err);
-				table.Commands.CancelEdit();
-			}
-			finally {
-				table.Commands.EndEdit();
-			}
+		public void Map<TKey>(DbTab tab, string file, DbAttribute[] mappedFields) {
+			//AbstractDb<TKey> db = GetCopyDb<TKey>(DbImport);
+			//db.DummyInit(tab.ProjectDatabase);
+			//
+			//if (db.DbSource == ServerDbs.ClientItem) {
+			//	if (file.IsExtension(".lua", ".lub")) {
+			//		ClientItemReaderLua reader = new ClientItemReaderLua();
+			//		db.DbLoader = (d, idb) => reader.LoadFile((AbstractDb<int>)(object)db, file);
+			//	}
+			//	else {
+			//		throw new NotImplementedException();
+			//		//db.DbLoader = (d, idb) => DbClientItemParser.LoadData((AbstractDb<int>)(object)db, file, mappedFields[0], _allowCutLine);
+			//	}
+			//}
+			//
+			//var method = db.DbLoader;
+			//db.DbLoader = (d, idb) => {
+			//	db.Table.EnableRawEvents = false;
+			//	method(d, idb);
+			//};
+			//
+			//try {
+			//	if ((tab.DbComponent.DbSource & ServerDbs.ClientItem) != ServerDbs.ClientItem) {
+			//		DebugStreamReader.ToServerEncoding = true;
+			//	}
+			//	else {
+			//		DebugStreamReader.ToClientEncoding = true;
+			//	}
+			//
+			//	db.LoadFromClipboard(file);
+			//}
+			//finally {
+			//	DebugStreamReader.ToServerEncoding = false;
+			//	DebugStreamReader.ToClientEncoding = false;
+			//}
+			//
+			//var table = tab.Table;
+			//
+			//table.Commands.Begin();
+			//
+			//try {
+			//	foreach (var cTuple in db.Table.FastItems) {
+			//		var sTuple = table.TryGetTuple(cTuple.Key);
+			//		if (sTuple == null) continue;
+			//
+			//		for (int i = 0; i < mappedFields.Length; i += 2) {
+			//			var cValue = cTuple.GetValue<string>(mappedFields[i]);
+			//			var sValue = sTuple.GetValue<string>(mappedFields[i + 1]);
+			//
+			//			if (cValue != sValue) {
+			//				if (_isNoEmptyFields(mappedFields[i + 1], cValue, sValue)) continue;
+			//				table.Commands.Set(sTuple, mappedFields[i + 1], cValue);
+			//			}
+			//		}
+			//	}
+			//}
+			//catch (Exception err) {
+			//	ErrorHandler.HandleException(err);
+			//	table.Commands.CancelEdit();
+			//}
+			//finally {
+			//	table.Commands.EndEdit();
+			//}
 		}
 
 		private static bool _isNoEmptyFields(DbAttribute attribute, string cValue, string sValue) {
-			if (String.IsNullOrEmpty(cValue)) {
-				if (NoEmptyFields.Contains(attribute)) return true;
-			}
-
-			if (ZeroEmptyFields.Contains(attribute)) {
-				int cVal;
-				int sVal;
-
-				cValue = cValue ?? "";
-				sValue = sValue ?? "";
-
-				Int32.TryParse(cValue, out cVal);
-				Int32.TryParse(sValue, out sVal);
-
-				if (cVal == sVal) return true;
-			}
+			//if (String.IsNullOrEmpty(cValue)) {
+			//	if (NoEmptyFields.Contains(attribute)) return true;
+			//}
+			//
+			//if (ZeroEmptyFields.Contains(attribute)) {
+			//	int cVal;
+			//	int sVal;
+			//
+			//	cValue = cValue ?? "";
+			//	sValue = sValue ?? "";
+			//
+			//	Int32.TryParse(cValue, out cVal);
+			//	Int32.TryParse(sValue, out sVal);
+			//
+			//	if (cVal == sVal) return true;
+			//}
 
 			return false;
 		}
 
-		public static List<DbAttribute> NoEmptyFields = new List<DbAttribute> { ServerItemAttributes.Name, ClientItemAttributes.IdentifiedDisplayName, ClientItemAttributes.UnidentifiedDisplayName, ClientItemAttributes.Illustration, ClientItemAttributes.Affix, ClientItemAttributes.IdentifiedDescription, ClientItemAttributes.UnidentifiedDescription };
-		public static List<DbAttribute> ZeroEmptyFields = new List<DbAttribute> { ServerItemAttributes.ClassNumber, ClientItemAttributes.ClassNumber, ServerItemAttributes.NumberOfSlots, ClientItemAttributes.NumberOfSlots };
+		//public static List<DbAttribute> NoEmptyFields = new List<DbAttribute> { ItemAttributes.Name, ClientItemAttributes.IdentifiedDisplayName, ClientItemAttributes.UnidentifiedDisplayName, ClientItemAttributes.Illustration, ClientItemAttributes.Affix, ClientItemAttributes.IdentifiedDescription, ClientItemAttributes.UnidentifiedDescription };
+		//public static List<DbAttribute> ZeroEmptyFields = new List<DbAttribute> { ItemAttributes.ClassNumber, ClientItemAttributes.ClassNumber, ItemAttributes.NumberOfSlots, ClientItemAttributes.NumberOfSlots };
 
 		public bool AllowCutLine {
 			get { return _allowCutLine; }
@@ -219,9 +218,9 @@ namespace SDE.Editor {
 	}
 
 	public class ReplaceTableFields {
-		public static void ReplaceFields<TKey>(GDbTabWrapper<TKey, ReadableTuple<TKey>> tab) {
+		public static void ReplaceFields(DbTab tab) {
 			try {
-				string[] files = PathRequest.OpenFilesCde("filter", FileFormat.MergeFilters(Format.All, Format.Txt, Format.Lua));
+				string[] files = PathRequest.OpenFilesCde("filter", FileFormat.MergeFilters(FileFormat.All, FileFormat.Txt, FileFormat.Lua));
 
 				if (files == null || files.Length == 0) return;
 
@@ -236,114 +235,114 @@ namespace SDE.Editor {
 			}
 		}
 
-		private static void _readFile<TKey>(string file, GDbTabWrapper<TKey, ReadableTuple<TKey>> tab) {
+		private static void _readFile(string file, DbTab tab) {
 			try {
-				FieldMapper fieldMapper = new FieldMapper(tab.GetDb<TKey>(tab.Settings.DbData).TabGenerator.MaxElementsToCopyInCustomMethods, tab.ProjectDatabase.AllTables);
-				fieldMapper.DbDest = tab.Settings.DbData;
+				//FieldMapper fieldMapper = new FieldMapper(SdeEditor.Project.GetDb(tab.Settings.Source).TabGenerator.MaxElementsToCopyInCustomMethods, SdeEditor.Project.AllTables);
+				//fieldMapper.SourceDestination = tab.Settings.Source;
 
-				if ((tab.Settings.DbData & ServerDbs.AllItemTables) != 0) {
-					if (file.IsExtension(".lua", ".lub")) {
-						fieldMapper.DbImport = ServerDbs.CItems;
-
-						if ((tab.Settings.DbData & ServerDbs.ServerItems) != 0) {
-							fieldMapper.Mapping = new DbAttribute[] {
-								ClientItemAttributes.IdentifiedDisplayName, ServerItemAttributes.Name,
-								ClientItemAttributes.UnidentifiedDisplayName, ServerItemAttributes.Name,
-								ClientItemAttributes.ClassNumber, ServerItemAttributes.ClassNumber,
-								ClientItemAttributes.NumberOfSlots, ServerItemAttributes.NumberOfSlots
-							};
-						}
-						else {
-							fieldMapper.Mapping = new DbAttribute[] {
-								ClientItemAttributes.IdentifiedDisplayName, ClientItemAttributes.IdentifiedDisplayName,
-								ClientItemAttributes.IdentifiedDescription, ClientItemAttributes.IdentifiedDescription,
-								ClientItemAttributes.IdentifiedResourceName, ClientItemAttributes.IdentifiedResourceName,
-								ClientItemAttributes.UnidentifiedDisplayName, ClientItemAttributes.UnidentifiedDisplayName,
-								ClientItemAttributes.UnidentifiedDescription, ClientItemAttributes.UnidentifiedDescription,
-								ClientItemAttributes.UnidentifiedResourceName, ClientItemAttributes.UnidentifiedResourceName,
-								ClientItemAttributes.ClassNumber, ClientItemAttributes.ClassNumber,
-								ClientItemAttributes.NumberOfSlots, ClientItemAttributes.NumberOfSlots
-							};
-						}
-					}
-					else if (file.IsExtension(".txt", ".conf")) {
-						if (file.Contains("item_db")) {
-							fieldMapper.DbImport = ServerDbs.Items;
-
-							if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0) {
-								fieldMapper.Mapping = new DbAttribute[] {
-									ServerItemAttributes.Name, ClientItemAttributes.IdentifiedDisplayName,
-									ServerItemAttributes.ClassNumber, ClientItemAttributes.ClassNumber,
-									ServerItemAttributes.NumberOfSlots, ClientItemAttributes.NumberOfSlots
-								};
-							}
-						}
-						else {
-							fieldMapper.DbImport = ServerDbs.CItems;
-
-							if (file.Contains("idnum2itemdisplaynametable")) {
-								if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0)
-									fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.IdentifiedDisplayName, ClientItemAttributes.IdentifiedDisplayName };
-								else
-									fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.IdentifiedDisplayName, ServerItemAttributes.Name };
-							}
-							else if (file.Contains("num2itemdisplaynametable")) {
-								if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0)
-									fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.UnidentifiedDisplayName, ClientItemAttributes.UnidentifiedDisplayName };
-								else
-									fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.UnidentifiedDisplayName, ServerItemAttributes.Name };
-							}
-							else if (file.Contains("idnum2itemdesctable")) {
-								if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0) {
-									fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.IdentifiedDescription, ClientItemAttributes.IdentifiedDescription };
-								}
-								else throw new Exception("File not supported.");
-							}
-							else if (file.Contains("num2itemdesctable")) {
-								if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0) {
-									fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.UnidentifiedDescription, ClientItemAttributes.UnidentifiedDescription };
-								}
-								else throw new Exception("File not supported.");
-							}
-							else if (file.Contains("idnum2itemresnametable")) {
-								if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0) {
-									fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.IdentifiedResourceName, ClientItemAttributes.IdentifiedResourceName };
-									fieldMapper.AllowCutLine = false;
-								}
-								else throw new Exception("File not supported.");
-							}
-							else if (file.Contains("num2itemresnametable")) {
-								if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0) {
-									fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.UnidentifiedResourceName, ClientItemAttributes.UnidentifiedResourceName };
-									fieldMapper.AllowCutLine = false;
-								}
-								else throw new Exception("File not supported.");
-							}
-							else if (file.Contains("num2cardillustnametable")) {
-								if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0) {
-									fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.Illustration, ClientItemAttributes.Illustration };
-								}
-								else throw new Exception("File not supported.");
-							}
-							else if (file.Contains("cardprefixnametable")) {
-								if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0) {
-									fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.Affix, ClientItemAttributes.Affix };
-								}
-								else throw new Exception("File not supported.");
-							}
-							else throw new Exception("File not supported.");
-						}
-					}
-					else {
-						throw new Exception("File name not recognized (must be item_db or idnum2itemdisplaynametable.");
-					}
-
-					fieldMapper.Map(tab, file, fieldMapper.GetMappingFields());
-				}
-				else {
-					fieldMapper.DbImport = tab.Settings.DbData;
-					fieldMapper.Map(tab, file, fieldMapper.GetMappingFields());
-				}
+				//if ((tab.Settings.DbData & ServerDbs.AllItemTables) != 0) {
+				//	if (file.IsExtension(".lua", ".lub")) {
+				//		fieldMapper.DbImport = ServerDbs.ClientItems;
+				//
+				//		if ((tab.Settings.DbData & ServerDbs.ServerItems) != 0) {
+				//			fieldMapper.Mapping = new DbAttribute[] {
+				//				ClientItemAttributes.IdentifiedDisplayName, ItemAttributes.Name,
+				//				ClientItemAttributes.UnidentifiedDisplayName, ItemAttributes.Name,
+				//				ClientItemAttributes.ClassNumber, ItemAttributes.ClassNumber,
+				//				ClientItemAttributes.NumberOfSlots, ItemAttributes.NumberOfSlots
+				//			};
+				//		}
+				//		else {
+				//			fieldMapper.Mapping = new DbAttribute[] {
+				//				ClientItemAttributes.IdentifiedDisplayName, ClientItemAttributes.IdentifiedDisplayName,
+				//				ClientItemAttributes.IdentifiedDescription, ClientItemAttributes.IdentifiedDescription,
+				//				ClientItemAttributes.IdentifiedResourceName, ClientItemAttributes.IdentifiedResourceName,
+				//				ClientItemAttributes.UnidentifiedDisplayName, ClientItemAttributes.UnidentifiedDisplayName,
+				//				ClientItemAttributes.UnidentifiedDescription, ClientItemAttributes.UnidentifiedDescription,
+				//				ClientItemAttributes.UnidentifiedResourceName, ClientItemAttributes.UnidentifiedResourceName,
+				//				ClientItemAttributes.ClassNumber, ClientItemAttributes.ClassNumber,
+				//				ClientItemAttributes.NumberOfSlots, ClientItemAttributes.NumberOfSlots
+				//			};
+				//		}
+				//	}
+				//	else if (file.IsExtension(".txt", ".conf")) {
+				//		if (file.Contains("item_db")) {
+				//			fieldMapper.DbImport = ServerDbs.Items;
+				//
+				//			if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0) {
+				//				fieldMapper.Mapping = new DbAttribute[] {
+				//					ItemAttributes.Name, ClientItemAttributes.IdentifiedDisplayName,
+				//					ItemAttributes.ClassNumber, ClientItemAttributes.ClassNumber,
+				//					ItemAttributes.NumberOfSlots, ClientItemAttributes.NumberOfSlots
+				//				};
+				//			}
+				//		}
+				//		else {
+				//			fieldMapper.DbImport = ServerDbs.ClientItems;
+				//
+				//			if (file.Contains("idnum2itemdisplaynametable")) {
+				//				if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0)
+				//					fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.IdentifiedDisplayName, ClientItemAttributes.IdentifiedDisplayName };
+				//				else
+				//					fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.IdentifiedDisplayName, ItemAttributes.Name };
+				//			}
+				//			else if (file.Contains("num2itemdisplaynametable")) {
+				//				if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0)
+				//					fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.UnidentifiedDisplayName, ClientItemAttributes.UnidentifiedDisplayName };
+				//				else
+				//					fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.UnidentifiedDisplayName, ItemAttributes.Name };
+				//			}
+				//			else if (file.Contains("idnum2itemdesctable")) {
+				//				if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0) {
+				//					fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.IdentifiedDescription, ClientItemAttributes.IdentifiedDescription };
+				//				}
+				//				else throw new Exception("File not supported.");
+				//			}
+				//			else if (file.Contains("num2itemdesctable")) {
+				//				if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0) {
+				//					fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.UnidentifiedDescription, ClientItemAttributes.UnidentifiedDescription };
+				//				}
+				//				else throw new Exception("File not supported.");
+				//			}
+				//			else if (file.Contains("idnum2itemresnametable")) {
+				//				if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0) {
+				//					fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.IdentifiedResourceName, ClientItemAttributes.IdentifiedResourceName };
+				//					fieldMapper.AllowCutLine = false;
+				//				}
+				//				else throw new Exception("File not supported.");
+				//			}
+				//			else if (file.Contains("num2itemresnametable")) {
+				//				if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0) {
+				//					fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.UnidentifiedResourceName, ClientItemAttributes.UnidentifiedResourceName };
+				//					fieldMapper.AllowCutLine = false;
+				//				}
+				//				else throw new Exception("File not supported.");
+				//			}
+				//			else if (file.Contains("num2cardillustnametable")) {
+				//				if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0) {
+				//					fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.Illustration, ClientItemAttributes.Illustration };
+				//				}
+				//				else throw new Exception("File not supported.");
+				//			}
+				//			else if (file.Contains("cardprefixnametable")) {
+				//				if ((tab.Settings.DbData & ServerDbs.ClientItems) != 0) {
+				//					fieldMapper.Mapping = new DbAttribute[] { ClientItemAttributes.Affix, ClientItemAttributes.Affix };
+				//				}
+				//				else throw new Exception("File not supported.");
+				//			}
+				//			else throw new Exception("File not supported.");
+				//		}
+				//	}
+				//	else {
+				//		throw new Exception("File name not recognized (must be item_db or idnum2itemdisplaynametable.");
+				//	}
+				//
+				//	fieldMapper.Map(tab, file, fieldMapper.GetMappingFields());
+				//}
+				//else {
+				//	fieldMapper.DbImport = tab.Settings.DbData;
+				//	fieldMapper.Map(tab, file, fieldMapper.GetMappingFields());
+				//}
 			}
 			catch (OperationCanceledException) {
 				throw new OperationCanceledException();

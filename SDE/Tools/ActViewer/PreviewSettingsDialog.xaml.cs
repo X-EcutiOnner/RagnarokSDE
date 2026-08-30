@@ -1,57 +1,61 @@
-﻿using System;
-using System.Windows.Media;
+﻿using System.Windows.Media;
 using GRF.Image;
 using GrfToWpfBridge;
+using GrfToWpfBridge.ActRenderer;
 using SDE.ApplicationConfiguration;
 using SDE.View.Controls;
 using TokeiLibrary.WPF.Styles;
+using static GrfToWpfBridge.ActRenderer.FrameRendererConfiguration;
 
 namespace SDE.Tools.ActViewer {
 	/// <summary>
 	/// Interaction logic for SettingsDialog.xaml
 	/// </summary>
 	public partial class PreviewSettingsDialog : TkWindow {
-		private readonly Action _update;
+		private IFrameRendererEditor _editor;
+		private FrameRendererConfiguration _config;
 
-		public PreviewSettingsDialog(Action update, Action<Color> update2) : base("Advanced settings", "settings.png") {
-			_update = update;
+		public PreviewSettingsDialog(IFrameRendererEditor editor, FrameRendererConfiguration config) : base("Advanced settings", "settings.png") {
+			_editor = editor;
+			_config = config;
+
 			InitializeComponent();
 
 			_colorPreviewPanelBakground.Color = SdeAppConfiguration.ActEditorBackgroundColor;
 			_colorPreviewPanelBakground.Init(SdeAppConfiguration.ConfigAsker.RetrieveSetting(() => SdeAppConfiguration.ActEditorBackgroundColor));
 
 			_colorPreviewPanelBakground.ColorChanged += delegate(object sender, Color value) {
-				SdeAppConfiguration.ActEditorBackgroundColor = value;
-				update2(value);
+				config.ActEditorBackgroundColor = value;
+				editor.FrameRenderer.Update();
 			};
 
 			_colorPreviewPanelBakground.PreviewColorChanged += delegate(object sender, Color value) {
-				SdeAppConfiguration.ActEditorBackgroundColor = value;
-				update2(value);
+				config.ActEditorBackgroundColor = value;
+				editor.FrameRenderer.Update();
 			};
 
-			_set(_colorGridLH, () => SdeAppConfiguration.ActEditorGridLineHorizontal, v => SdeAppConfiguration.ActEditorGridLineHorizontal = v);
-			_set(_colorGridLV, () => SdeAppConfiguration.ActEditorGridLineVertical, v => SdeAppConfiguration.ActEditorGridLineVertical = v);
-			_set(_colorSpriteBorder, () => SdeAppConfiguration.ActEditorSpriteSelectionBorder, v => SdeAppConfiguration.ActEditorSpriteSelectionBorder = v);
-			_set(_colorSpriteOverlay, () => SdeAppConfiguration.ActEditorSpriteSelectionBorderOverlay, v => SdeAppConfiguration.ActEditorSpriteSelectionBorderOverlay = v);
-			_set(_colorSelectionBorder, () => SdeAppConfiguration.ActEditorSelectionBorder, v => SdeAppConfiguration.ActEditorSelectionBorder = v);
-			_set(_colorSelectionOverlay, () => SdeAppConfiguration.ActEditorSelectionBorderOverlay, v => SdeAppConfiguration.ActEditorSelectionBorderOverlay = v);
+			_set(_colorGridLH, _config.ActEditorGridLineHorizontal);
+			_set(_colorGridLV, _config.ActEditorGridLineVertical);
+			_set(_colorSpriteBorder, _config.ActEditorSpriteSelectionBorder);
+			_set(_colorSpriteOverlay, _config.ActEditorSpriteSelectionBorderOverlay);
+			_set(_colorSelectionBorder, _config.ActEditorSelectionBorder);
+			_set(_colorSelectionOverlay, _config.ActEditorSelectionBorderOverlay);
 		}
 
-		private void _set(QuickColorSelector qcs, Func<GrfColor> get, Action<GrfColor> set) {
-			qcs.Color = get().ToColor();
-			qcs.Init(SdeAppConfiguration.ConfigAsker.RetrieveSetting(() => get()));
+		private void _set(QuickColorSelector qcs, QuickSetting<GrfColor> setting) {
+			qcs.Color = setting.Get().ToColor();
+			qcs.Init(setting);
 
 			qcs.ColorChanged += delegate(object sender, Color value) {
-				set(value.ToGrfColor());
-				_update();
+				setting.Set(value.ToGrfColor());
+				_editor.FrameRenderer.Update();
 			};
 
 			qcs.PreviewColorChanged += delegate(object sender, Color value) {
 				SdeAppConfiguration.ConfigAsker.IsAutomaticSaveEnabled = false;
-				set(value.ToGrfColor());
+				setting.Set(value.ToGrfColor());
 				SdeAppConfiguration.ConfigAsker.IsAutomaticSaveEnabled = true;
-				_update();
+				_editor.FrameRenderer.Update();
 			};
 		}
 	}

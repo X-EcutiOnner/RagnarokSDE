@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using Database;
 using ErrorManager;
-using SDE.Editor.Generic;
-using SDE.Editor.Generic.Core;
-using SDE.Editor.Generic.TabsMakerCore;
+using SDE.Editor.Database;
+using SDE.Editor.Generic.DbTabs;
 using TokeiLibrary;
 using TokeiLibrary.WPF.Styles;
-using TokeiLibrary.WPF.Styles.ListView;
-using Tuple = Database.Tuple;
+using Utilities;
+using static SDE.View.Dialogs.ReplaceDialog;
 
 namespace SDE.View.Dialogs {
 	/// <summary>
@@ -24,7 +23,7 @@ namespace SDE.View.Dialogs {
 		public CopyDialog(SdeEditor editor)
 			: base("Copy all...", "imconvert.png", SizeToContent.WidthAndHeight, ResizeMode.NoResize) {
 			_editor = editor;
-			_editor.SelectionChanged += new SdeEditor.SdeSelectionChangedEventHandler(_editor_SelectionChanged);
+			_editor.SelectionChanged += _editor_SelectionChanged;
 
 			InitializeComponent();
 			WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -38,6 +37,8 @@ namespace SDE.View.Dialogs {
 				_boxes.ForEach(p => p.IsChecked = false);
 			};
 
+			WpfUtilities.AddMouseInOutUnderline(_cbSelectAll);
+
 			_update();
 		}
 
@@ -45,12 +46,12 @@ namespace SDE.View.Dialogs {
 			_update();
 		}
 
-		private GDbTab _tab;
+		private DbTab _tab;
 
 		private readonly List<CheckBox> _boxes = new List<CheckBox>();
 
 		private void _update() {
-			GDbTab tab = _editor.FindTopmostTab();
+			var tab = _editor.FindTopmostTab();
 
 			if (tab != null) {
 				try {
@@ -66,21 +67,20 @@ namespace SDE.View.Dialogs {
 
 					int index = 0;
 
-					foreach (DbAttribute attribute in _tab.DbComponent.AttributeList.Attributes) {
-						if (attribute.Index == 0) continue;
+					var modelType = tab.Settings.ModelAttribute.DataType;
+					var objectTree = TypeTreeHelper.GetObjectTree(modelType);
 
-						if ((attribute.Visibility & VisibleState.VisibleAndForceShow) != 0) {
-							CheckBox box = new CheckBox {Margin = new Thickness(3, 3, 10, 3)};
-							box.Content = attribute.DisplayName ?? attribute.AttributeName;
-							box.Tag = attribute;
-							box.SetValue(Grid.RowProperty, index / _gridCopy.ColumnDefinitions.Count);
-							box.SetValue(Grid.ColumnProperty, index % _gridCopy.ColumnDefinitions.Count);
-							box.IsChecked = _cbSelectAll.IsChecked;
-							WpfUtils.AddMouseInOutEffectsBox(box);
-							_gridCopy.Children.Add(box);
-							_boxes.Add(box);
-							index++;
-						}
+					foreach (var vm in objectTree.FieldsOrMembers.Where(p => p.Value.Member is FieldInfo).Select(p => new ObjectTreeViewModel(p.Key, p.Value)).OrderBy(p => p.FieldName)) {
+						CheckBox box = new CheckBox { Margin = new Thickness(3, 3, 10, 3) };
+						box.Content = vm.FieldName;
+						box.Tag = vm;
+						box.SetValue(Grid.RowProperty, index / _gridCopy.ColumnDefinitions.Count);
+						box.SetValue(Grid.ColumnProperty, index % _gridCopy.ColumnDefinitions.Count);
+						box.IsChecked = _cbSelectAll.IsChecked;
+						WpfUtilities.AddMouseInOutUnderline(box);
+						_gridCopy.Children.Add(box);
+						_boxes.Add(box);
+						index++;
 					}
 
 					_buttonOk.IsEnabled = true;
@@ -109,27 +109,62 @@ namespace SDE.View.Dialogs {
 			_replace();
 		}
 
-		private void _replace<T>(GDbTab tab, Database.Tuple tuple) {
-			var aDb = tab.DbComponent.To<T>();
-			aDb.Table.Commands.Begin();
+		private void _replace(DbTab tab, ReadableTuple tuple) {
+			var commands = tab.Table.Commands;
+			commands.Begin();
 
 			try {
-				List<DbAttribute> attributes = _boxes.Where(p => p.IsChecked == true).Select(p => (DbAttribute) p.Tag).ToList();
-				//List<ITableCommand<T, ReadableTuple<T>>> commands = new List<ITableCommand<T, ReadableTuple<T>>>();
+				List<ObjectTreeViewModel> fields = _boxes.Where(p => p.IsChecked == true).Select(p => (ObjectTreeViewModel)p.Tag).ToList();
+				var modelType = tab.Settings.ModelAttribute.DataType;
+				var tuples = tab.List.SelectedItems.Cast<ReadableTuple>().ToList();
+				tuples.Remove(tuple);
+				var model = tuple.GetModel();
 
-				foreach (ReadableTuple<T> item in tab._listView.SelectedItems) {
-					for (int index = 0; index < attributes.Count; index++) {
-						aDb.Table.Commands.Set(item, attributes[index], tuple.GetValue(attributes[index]));
+				var method = commands.GetType().GetMethods().Where(p => p.Name == "SetModelsValue").FirstOrDefault(m => {
+					// Must be generic with exactly 2 generic arguments: <TModel, TFieldValue>
+					if (!m.IsGenericMethod || m.GetGenericArguments().Length != 2)
+						return false;
+
+					var parameters = m.GetParameters();
+
+					if (parameters.Length != 4)
+						return false;
+
+					bool matchParameters =
+						parameters[0].ParameterType.IsGenericType && // List<ReadableTuple>
+						parameters[1].ParameterType == typeof(string) && // fieldName
+						parameters[3].ParameterType == typeof(int); // modelAttributeIndex
+
+					return matchParameters;
+				});
+
+				for (int index = 0; index < fields.Count; index++) {
+					var vm = fields[index];
+					var fieldName = vm.FieldName;
+					var fieldInfo = vm.ObjectTree.Member as FieldInfo;
+					var genericMethod = method.MakeGenericMethod(modelType, fieldInfo.FieldType);
+
+					if (vm.ObjectTree.IsCollection)
+						continue;
+					else if (fieldInfo.FieldType == typeof(bool)) {
+						genericMethod.Invoke(commands, new object[] { tuples, fieldName, (bool)TypeTreeHelper.GetValue(model, fieldName).First(), 1 });
+					}
+					else if (fieldInfo.FieldType.BaseType == typeof(Enum)) {
+						genericMethod.Invoke(commands, new object[] { tuples, fieldName, TypeTreeHelper.GetValue(model, fieldName).First(), 1 });
+					}
+					else if (fieldInfo.FieldType == typeof(string)) {
+						genericMethod.Invoke(commands, new object[] { tuples, fieldName, (string)(TypeTreeHelper.GetValue(model, fieldName).First() ?? ""), 1 });
+					}
+					else {
+						continue;
 					}
 				}
-
-				//aDb.Table.Commands.StoreAndExecute(new GroupCommand<T, ReadableTuple<T>>(commands));
 			}
 			catch {
-				aDb.Table.Commands.CancelEdit();
+				commands.CancelEdit();
 			}
 			finally {
-				aDb.Table.Commands.End();
+				commands.End();
 				tab.Update();
 			}
 		}
@@ -139,25 +174,20 @@ namespace SDE.View.Dialogs {
 				if (_boxes.TrueForAll(p => p.IsChecked == false))
 					throw new Exception("No attribute selected.");
 
-				GDbTab tab = _tab;
+				DbTab tab = _tab;
 
 				if (tab == null)
 					throw new Exception("No tab selected.");
 
-				if (tab._listView.SelectedItems.Count == 0)
+				if (tab.ListView.SelectedItems.Count == 0)
 					throw new Exception("No items selected (select the items to replace in the list).");
 
-				if (tab._listView.SelectedItems.Count == 1)
+				if (tab.ListView.SelectedItems.Count == 1)
 					throw new Exception("You must select more than one item to copy (the currently selected one is the source).");
 
-				var tuple = tab._listView.SelectedItem as Tuple;
+				var tuple = tab.SelectedItem;
 
-				if (tab.DbComponent is AbstractDb<int>) {
-					_replace<int>(tab, tuple);
-				}
-				else if (tab.DbComponent is AbstractDb<string>) {
-					_replace<string>(tab, tuple);
-				}
+				_replace(tab, tuple);
 			}
 			catch (Exception err) {
 				ErrorHandler.HandleException(err);

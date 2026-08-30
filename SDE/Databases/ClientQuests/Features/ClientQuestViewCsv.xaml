@@ -1,0 +1,66 @@
+﻿<UserControl x:Class="SDE.Databases.ClientQuests.Features.ClientQuestViewCsv"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:SDE.Databases.Quests.Features"
+			 xmlns:f="clr-namespace:SDE.Databases.Generic.Controls"
+             xmlns:TokeiLibrary="clr-namespace:TokeiLibrary;assembly=TokeiLibrary"
+             xmlns:ListView="clr-namespace:TokeiLibrary.WPF.Styles.ListView;assembly=TokeiLibrary"
+             xmlns:Tmc="clr-namespace:SDE.Editor.Generic.DbTabs"
+             xmlns:Converters="clr-namespace:SDE.Databases.Generic.Converters"
+			 xmlns:wpfbugfix="clr-namespace:TokeiLibrary.WpfBugFix;assembly=TokeiLibrary"
+             xmlns:Common="clr-namespace:SDE.Databases.Generic.Common"
+			 xmlns:styles="clr-namespace:TokeiLibrary.WPF.Styles;assembly=TokeiLibrary"
+			 Foreground="{DynamicResource TextForeground}"
+			 mc:Ignorable="d" 
+			 MaxWidth="800"
+			 HorizontalAlignment="Left"
+			 d:DesignWidth="800">
+	<UserControl.Resources>
+		<Converters:ItemPreviewConverter x:Key="ItemPreviewConverter"/>
+		<Converters:MobPreviewConverter x:Key="MobPreviewConverter"/>
+	</UserControl.Resources>
+	<Grid x:Name="_gridContainer" IsEnabled="{Binding IsModelValid}">
+		<f:HorizontalGrid ColumnCount="2">
+			<f:Property Label="Quest ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Id}">
+				<f:Property.Editor>
+					<f:ValidationTextBox IsReadOnly="True" Text="{Binding Id}" PreviewText="{Binding Id}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:EditKeyButton SourceField="{Binding Id}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Title" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Title}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="SG" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding SG}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding SG, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="QUE" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding QUE}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding QUE, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Summary" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Summary}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Summary, UpdateSourceTrigger=PropertyChanged}" MinHeight="150" BoxVerticalAlignment="Top" TextWrapping="Wrap" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Description" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Description}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" MinHeight="150" BoxVerticalAlignment="Top" AcceptsReturn="True" TextWrapping="Wrap" />
+				</f:Property.Editor>
+			</f:Property>
+		</f:HorizontalGrid>
+	</Grid>
+</UserControl>

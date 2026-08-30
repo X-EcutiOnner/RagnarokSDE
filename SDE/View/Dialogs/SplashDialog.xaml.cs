@@ -14,8 +14,6 @@ namespace SDE.View.Dialogs {
 
 		public SplashDialog() {
 			InitializeComponent();
-			//this.MaxHeight = 20;
-			//this.MaxWidth = 20;
 		}
 
 		public void Terminate() {

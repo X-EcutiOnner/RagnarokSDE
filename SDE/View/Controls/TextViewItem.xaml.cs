@@ -9,7 +9,7 @@ using System.Windows.Media;
 using ErrorManager;
 using GRF.Core.GroupedGrf;
 using SDE.Editor;
-using SDE.Editor.Engines;
+using SDE.Editor.Files;
 using TokeiLibrary.WPF.Styles;
 using Utilities;
 using Utilities.Services;
@@ -20,13 +20,7 @@ namespace SDE.View.Controls {
 	/// </summary>
 	public partial class TextViewItem : UserControl, INotifyPropertyChanged {
 		#region Delegates
-
 		public delegate void TextViewItemEventHandler(object sender, EventArgs e);
-
-		#endregion
-
-		#region TviState enum
-
 		#endregion
 
 		private readonly GetSetSetting _setting;
@@ -51,8 +45,8 @@ namespace SDE.View.Controls {
 			_toolTip = new ToolTip();
 			_tRectangleOverlay.ToolTip = _toolTip;
 
-			MouseEnter += new MouseEventHandler(_tkTreeViewItem_MouseEnter);
-			MouseLeave += new MouseEventHandler(_tkTreeViewItem_MouseLeave);
+			MouseEnter += _tkTreeViewItem_MouseEnter;
+			MouseLeave += _tkTreeViewItem_MouseLeave;
 
 			try {
 				DefaultValue = ProjectConfiguration.ConfigAsker.RetrieveSetting(() => setting.Value).Default;
@@ -141,21 +135,13 @@ namespace SDE.View.Controls {
 
 		public void SetState(TviState state) {
 			switch (state) {
-				case TviState.Selected:
-					TVIHeaderBrush.Background = Application.Current.Resources["TVISelectBackground"] as Brush;
-					TVIHeaderBrush.BorderBrush = Application.Current.Resources["TVISelectBorder"] as Brush;
+				default:
+					TVIHeaderBrush.Background = Brushes.Transparent;
+					TVIHeaderBrush.BorderBrush = Brushes.Transparent;
 					break;
 				case TviState.DragOver:
 					TVIHeaderBrush.Background = Application.Current.Resources["TVIMouseDragOverBackground"] as Brush;
 					TVIHeaderBrush.BorderBrush = Application.Current.Resources["TVIMouseDragOverBorder"] as Brush;
-					break;
-				case TviState.MouseOver:
-					TVIHeaderBrush.Background = Application.Current.Resources["TVIMouseOverBackground"] as Brush;
-					TVIHeaderBrush.BorderBrush = Application.Current.Resources["TVIMouseOverBorder"] as Brush;
-					break;
-				case TviState.None:
-					TVIHeaderBrush.Background = Application.Current.Resources["TVIDefaultBackground"] as Brush;
-					TVIHeaderBrush.BorderBrush = Application.Current.Resources["TVIDefaultBorder"] as Brush;
 					break;
 			}
 		}
@@ -199,9 +185,6 @@ namespace SDE.View.Controls {
 				if (Filepath != null && _metaGrf != null && Directory.Exists(Filepath)) {
 					toolTip = Filepath;
 				}
-
-				if (Filepath != null && !IOHelper.IsSystemFile(Filepath))
-					toolTip = Filepath;
 			}
 			else {
 				if (Filepath != null && _metaGrf != null && _metaGrf.GetData(Filepath) != null) {
@@ -227,8 +210,7 @@ namespace SDE.View.Controls {
 		public event TextViewItemEventHandler MouseOver;
 
 		public void OnMouseOver(object obj) {
-			TextViewItemEventHandler handler = MouseOver;
-			if (handler != null) handler(obj, null);
+			MouseOver?.Invoke(obj, null);
 		}
 
 		private void _buttonReset_Click(object sender, RoutedEventArgs e) {
@@ -242,14 +224,14 @@ namespace SDE.View.Controls {
 				_generateToolTip();
 
 				if (Browser.BrowseMode == PathBrowser.BrowseModeType.Folder) {
-					if (Directory.Exists(path) || !IOHelper.IsSystemFile(path)) {
+					if (Directory.Exists(path)) {
 						if (_tbText != null && _tbText.RecentFiles != null)
 							_tbText.RecentFiles.AddRecentFile(path);
-						_tblockDescription.Foreground = Application.Current.Resources["TextForeground"] as Brush;
+						_tblockDescription.SetResourceReference(TextBlock.ForegroundProperty, "TextForeground");
 						_imgError.Visibility = Visibility.Collapsed;
 					}
 					else {
-						_tblockDescription.Foreground = Application.Current.Resources["CellBrushRemoved"] as Brush;
+						_tblockDescription.SetResourceReference(TextBlock.ForegroundProperty, "CellBrushRemoved");
 						_imgError.Visibility = Visibility.Visible;
 					}
 				}
@@ -257,11 +239,11 @@ namespace SDE.View.Controls {
 					if (_metaGrf.GetData(path) != null) {
 						if (_tbText != null && _tbText.RecentFiles != null)
 							_tbText.RecentFiles.AddRecentFile(path);
-						_tblockDescription.Foreground = Application.Current.Resources["TextForeground"] as Brush;
+						_tblockDescription.SetResourceReference(TextBlock.ForegroundProperty, "TextForeground");
 						_imgError.Visibility = Visibility.Collapsed;
 					}
 					else {
-						_tblockDescription.Foreground = Application.Current.Resources["CellBrushRemoved"] as Brush;
+						_tblockDescription.SetResourceReference(TextBlock.ForegroundProperty, "CellBrushRemoved");
 						_imgError.Visibility = Visibility.Visible;
 					}
 				}
@@ -315,8 +297,7 @@ namespace SDE.View.Controls {
 		public event PropertyChangedEventHandler PropertyChanged;
 
 		protected virtual void OnPropertyChanged(string propertyName) {
-			PropertyChangedEventHandler handler = PropertyChanged;
-			if (handler != null) handler(this, new PropertyChangedEventArgs(propertyName));
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 		}
 	}
 

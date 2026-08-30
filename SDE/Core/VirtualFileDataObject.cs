@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using ErrorManager;
 using GRF.Core;
 using GRF.Image;
-using GRF.System;
+using GRF.GrfSystem;
 using GRF.Threading;
 using GrfToWpfBridge;
 using TokeiLibrary;
@@ -101,9 +101,7 @@ namespace SDE.Core {
 
 		void IAsyncOperation.StartOperation(IBindCtx pbcReserved) {
 			_inOperation = true;
-			if (null != _startAction) {
-				_startAction(this);
-			}
+			_startAction?.Invoke(this);
 		}
 
 		void IAsyncOperation.InOperation(out int pfInAsyncOp) {
@@ -111,9 +109,7 @@ namespace SDE.Core {
 		}
 
 		void IAsyncOperation.EndOperation(int hResult, IBindCtx pbcReserved, uint dwEffects) {
-			if (null != _endAction) {
-				_endAction(this);
-			}
+			_endAction?.Invoke(this);
 			_inOperation = false;
 		}
 		#endregion
@@ -175,9 +171,7 @@ namespace SDE.Core {
 					if (!IsAsynchronous && (FILEDESCRIPTORW == dataObject.FORMATETC.cfFormat) && !_inOperation) {
 						// Enter the operation and call the start action
 						_inOperation = true;
-						if (null != _startAction) {
-							_startAction(this);
-						}
+						_startAction?.Invoke(this);
 					}
 
 					// Populate the STGMEDIUM
@@ -251,9 +245,7 @@ namespace SDE.Core {
 			// Handle synchronous mode
 			if (!IsAsynchronous && (PERFORMEDDROPEFFECT == formatIn.cfFormat) && _inOperation) {
 				// Call the end action and exit the operation
-				if (null != _endAction) {
-					_endAction(this);
-				}
+				_endAction?.Invoke(this);
 				_inOperation = false;
 			}
 
@@ -400,9 +392,7 @@ namespace SDE.Core {
 				var virtualFileDataObject = dataObject as VirtualFileDataObject;
 				if ((null != virtualFileDataObject) && !virtualFileDataObject.IsAsynchronous && virtualFileDataObject._inOperation) {
 					// Call the end action and exit the operation
-					if (null != virtualFileDataObject._endAction) {
-						virtualFileDataObject._endAction(virtualFileDataObject);
-					}
+					virtualFileDataObject._endAction?.Invoke(virtualFileDataObject);
 					virtualFileDataObject._inOperation = false;
 				}
 			}

@@ -1,0 +1,158 @@
+﻿<Styles:TkWindow x:Class="SDE.Editor.Shops.ShopSimulatorDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" SnapsToDevicePixels="True"
+        xmlns:Styles="clr-namespace:TokeiLibrary.WPF.Styles;assembly=TokeiLibrary"
+        xmlns:TokeiLibrary="clr-namespace:TokeiLibrary;assembly=TokeiLibrary"
+        xmlns:ListView="clr-namespace:TokeiLibrary.WPF.Styles.ListView;assembly=TokeiLibrary"
+        xmlns:Avalon="clr-namespace:SDE.Core.Avalon"
+        Width="560"
+        xmlns:ActViewer="clr-namespace:SDE.Tools.ActViewer"
+        xmlns:WpfBugFix="clr-namespace:TokeiLibrary.WpfBugFix;assembly=TokeiLibrary"
+        xmlns:Shops="clr-namespace:SDE.Editor.Shops"
+		xmlns:acteditor="clr-namespace:SDE.Tools.ActViewer"
+		xmlns:Converters="clr-namespace:SDE.Databases.Generic.Converters"
+		xmlns:actrenderer="clr-namespace:GrfToWpfBridge.ActRenderer;assembly=GrfToWpfBridge"
+		xmlns:f="clr-namespace:SDE.Databases.Generic.Controls" xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
+				 Background="{StaticResource TabItemBackground}" Foreground="{StaticResource TextForeground}">
+	<Styles:TkWindow.Resources>
+		<Converters:ItemPreviewConverter x:Key="ItemPreviewConverter"/>
+		<Converters:MobPreviewConverter x:Key="MobPreviewConverter"/>
+		<Converters:MobNameConverter x:Key="MobNameConverter"/>
+		<Converters:ShopViewIdConverter x:Key="ShopViewIdConverter"/>
+	</Styles:TkWindow.Resources>
+    <Grid SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="Unspecified">
+        <Grid.RowDefinitions>
+            <RowDefinition />
+            <RowDefinition Height="auto" />
+        </Grid.RowDefinitions>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Name="_gridColumnPrimary" Width="282" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto" />
+                <RowDefinition Height="auto" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+
+			<Border BorderBrush="Black" BorderThickness="1" Height="260" MaxHeight="260" MinHeight="260" FocusVisualStyle="{x:Null}">
+				<WpfBugFix:RangeListView Name="_lvItems" SnapsToDevicePixels="True" Padding="0" BorderThickness="0" RenderOptions.BitmapScalingMode="NearestNeighbor" FocusVisualStyle="{x:Null}" ItemsSource="{Binding Items}" SelectionChanged="_lvItems_SelectionChanged">
+					<ListView.ItemContainerStyle>
+						<Style TargetType="ListViewItem">
+							<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+							<Setter Property="Padding" Value="0"/>
+						</Style>
+					</ListView.ItemContainerStyle>
+					<WpfBugFix:RangeListView.ItemTemplate>
+						<DataTemplate>
+							<Grid Height="32" MinHeight="32" MaxHeight="32" Width="230" HorizontalAlignment="Left">
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="32" />
+									<ColumnDefinition />
+									<ColumnDefinition Width="auto" />
+								</Grid.ColumnDefinitions>
+								<Image Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="NearestNeighbor" Source="{Binding ImageItemShadow}" Stretch="None" />
+								<Image Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="NearestNeighbor" Source="{Binding ImageItem}" Stretch="None" />
+								<Image Width="150" Grid.Column="2" HorizontalAlignment="Right" Margin="0 12 0 0" RenderOptions.BitmapScalingMode="NearestNeighbor" VerticalAlignment="Top" Source="{Binding ImagePrice}" Stretch="None" />
+								<TextBlock Grid.Column="1" Grid.ColumnSpan="2" Margin="3, 1, 0, 0" Foreground="#E6E6E6" VerticalAlignment="Center" HorizontalAlignment="Left" Text="{Binding PreviewItemNameShadow}" />
+								<TextBlock Grid.Column="1" Grid.ColumnSpan="2" Margin="2, 0, 0, 0" VerticalAlignment="Center" HorizontalAlignment="Left" ClipToBounds="False" Text="{Binding PreviewItemName}" Foreground="{DynamicResource TextForeground}" />
+							</Grid>
+						</DataTemplate>
+					</WpfBugFix:RangeListView.ItemTemplate>
+				</WpfBugFix:RangeListView>
+			</Border>
+
+			<f:HorizontalGrid Grid.Row="1" ColumnCount="1">
+				<StackPanel>
+					<CheckBox Name="_cbColorZeny" Margin="3" Content="Use color for the zeny amount" VerticalContentAlignment="Center" Grid.ColumnSpan="3" Height="22" />
+					<CheckBox Name="_cbDiscount" Margin="3" Content="Use discount" VerticalContentAlignment="Center" Grid.ColumnSpan="3" Height="22" />
+					<CheckBox Name="_cbUseViewId" Margin="3" Content="Always use view ID" VerticalContentAlignment="Center" Grid.ColumnSpan="3" Height="22" />
+				</StackPanel>
+
+				<f:Property Label="Item ID" IsEnabled="{Binding IsItemSelected}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding SelectedItem.Item, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding SelectedItem.Item, Converter={StaticResource ItemPreviewConverter}}" />
+					</f:Property.Editor>
+					<f:Property.Extras>
+						<f:SelectTupleButton SourceField="{Binding SelectedItem.Item}" Source="Items" />
+					</f:Property.Extras>
+				</f:Property>
+
+				<f:Property x:Name="_propPrice" Label="Price" IsEnabled="{Binding IsItemSelected}">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding SelectedItem.Price, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+					<f:Property.Extras>
+						<Button TokeiLibrary:WpfProperties.ImagePath="reset.png" Grid.Row="2" Grid.Column="2" Height="22" Width="22" Margin="3 0 0 0" Click="_tbPriceReset_Click" />
+					</f:Property.Extras>
+				</f:Property>
+			</f:HorizontalGrid>
+			<Grid x:Name="_gridActRenderer" Grid.Row="0" Grid.ColumnSpan="1" Grid.Column="1">
+				<actrenderer:FrameRenderer x:Name="_renderer" />
+				<acteditor:CompactActIndexSelector x:Name="_indexSelector" VerticalAlignment="Top" HorizontalAlignment="Left" />
+			</Grid>
+			<f:HorizontalGrid Grid.Row="1" Grid.Column="1" ColumnCount="1" MaxWidth="250" HorizontalAlignment="Left">
+				<f:Property Label="Shop type">
+					<f:Property.Editor>
+						<ComboBox ItemsSource="{Binding Path=(Shops:ShopTypeInfo.AllVisibleOnly)}" SelectedItem="{Binding Type, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Npc position">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding NpcPosition, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Npc display name">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding NpcDisplayName, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+				</f:Property>
+
+				<f:Property Label="Npc view ID">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding NpcViewId, UpdateSourceTrigger=PropertyChanged}" />
+					</f:Property.Editor>
+					<f:Property.Extras>
+						<f:SelectResourceButton Source="Npc" SourceField="{Binding NpcViewId, Converter={StaticResource ShopViewIdConverter}}" AutoComplete="Collapsed" />
+					</f:Property.Extras>
+				</f:Property>
+
+				<f:Property Label="Currency">
+					<f:Property.Editor>
+						<f:ValidationTextBox Text="{Binding Currency, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding Currency, Converter={StaticResource ItemPreviewConverter}}" />
+					</f:Property.Editor>
+					<f:Property.Extras>
+						<f:SelectTupleButton SourceField="{Binding Currency}" Source="Items" />
+					</f:Property.Extras>
+				</f:Property>
+			</f:HorizontalGrid>
+			<Grid Grid.Row="2" Grid.ColumnSpan="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <Label Content="Shop code" Padding="0" Margin="3" Grid.Row="0" />
+                <Border BorderBrush="Black" BorderThickness="1" Grid.Row="1" >
+					<avalonedit:TextEditor x:Name="_shop" Grid.Column="0" Grid.Row="1" BorderBrush="Black" BorderThickness="1"
+					    FontFamily="Consolas" Margin="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden"
+						MinHeight="40" WordWrap="True" />
+                </Border>
+            </Grid>
+        </Grid>
+        <Grid TokeiLibrary:WpfProperties.IsDraggable="True" Grid.Row="1" Height="49" Background="{DynamicResource UIDialogBackground}">
+            <Grid Margin="0 0 3 0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="auto" />
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="auto" />
+                </Grid.ColumnDefinitions>
+                <DockPanel Grid.Column="2">
+                    <Button Name="_buttonCancel" Click="_buttonCancel_Click" Content="Close" Height="25" Margin="3" MinWidth="100" Grid.Column="3" />
+                </DockPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+</Styles:TkWindow>

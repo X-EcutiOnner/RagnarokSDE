@@ -3,9 +3,9 @@ using System.Windows;
 using System.Windows.Input;
 using GRF.IO;
 using SDE.Core.Avalon;
+using SDE.Databases;
 using SDE.Editor;
-using SDE.Editor.Generic.Core;
-using SDE.Editor.Generic.Lists;
+using SDE.Editor.Database;
 using TokeiLibrary;
 using TokeiLibrary.WPF.Styles;
 using Utilities.Extension;
@@ -26,40 +26,36 @@ namespace SDE.View.Dialogs {
 
 			Log = "Database: Debugger Started...";
 
-			DbDebugHelper.Cleared += delegate(object sender, ServerDbs primaryTable, string subFile, BaseDb db) {
-				Log = String.Format("Table: {0}, Message: Table data cleared.", primaryTable);
+			DbDebugHelper.Cleared += delegate(object sender, DataSource source, string subFile, BaseDatabase db) {
+				Log = String.Format("Table: {0}, Message: Table data cleared.", source);
 			};
 
-			DbDebugHelper.ExceptionThrown += delegate(object sender, ServerDbs primaryTable, string subFile, BaseDb db) {
-				Log = String.Format("Table: {0}, File: {1}, Message: An exception occured while reading the table, continuing.", primaryTable, _getPath(subFile));
+			DbDebugHelper.ExceptionThrown += delegate(object sender, DataSource source, string subFile, BaseDatabase db) {
+				Log = String.Format("Table: {0}, File: {1}, Message: An exception occured while reading the table, continuing.", source, _getPath(subFile));
 			};
 
-			DbDebugHelper.Loaded += delegate(object sender, ServerDbs primaryTable, string subFile, BaseDb db) {
-				Log = String.Format("Table: {0}, File: {1}, Message: Table loaded.", primaryTable, _getPath(subFile));
+			DbDebugHelper.Loaded += delegate(object sender, DataSource source, string subFile, BaseDatabase db) {
+				Log = String.Format("Table: {0}, File: {1}, Message: Table loaded.", source, _getPath(subFile));
 			};
 
-			DbDebugHelper.Saved += delegate(object sender, ServerDbs primaryTable, string subFile, BaseDb db) {
-				Log = String.Format("Table: {0}, File: {1}, Message: Table saved.", primaryTable, _getPath(subFile));
+			DbDebugHelper.Saved += delegate(object sender, DataSource source, string subFile, BaseDatabase db) {
+				Log = String.Format("Table: {0}, File: {1}, Message: Table saved.", source, _getPath(subFile));
 			};
 
 			DbDebugHelper.Update += delegate(object sender, string message) {
 				Log = String.Format("Database: {0}", message ?? "");
 			};
 
-			DbDebugHelper.SftpUpdate += delegate(object sender, string message) {
-				Log = String.Format("Sftp: {0}", message ?? "");
+			DbDebugHelper.Update2 += delegate(object sender, DataSource source, string subFile, BaseDatabase db, string message) {
+				Log = String.Format("Table: {0}, File: {1}, Message: {2}", source, _getPath(subFile), message ?? "");
 			};
 
-			DbDebugHelper.Update2 += delegate(object sender, ServerDbs primaryTable, string subFile, BaseDb db, string message) {
-				Log = String.Format("Table: {0}, File: {1}, Message: {2}", primaryTable, _getPath(subFile), message ?? "");
+			DbDebugHelper.WriteStatusUpdate += delegate(object sender, DataSource source, string subFile, BaseDatabase db, string message) {
+				Log = String.Format("Table: {0}, File: {1}, Message: {2}", source, _getPath(subFile), message ?? "");
 			};
 
-			DbDebugHelper.WriteStatusUpdate += delegate(object sender, ServerDbs primaryTable, string subFile, BaseDb db, string message) {
-				Log = String.Format("Table: {0}, File: {1}, Message: {2}", primaryTable, _getPath(subFile), message ?? "");
-			};
-
-			DbDebugHelper.StoppedLoading += delegate(object sender, ServerDbs primaryTable, string subFile, BaseDb db) {
-				Log = String.Format("Table: {0}, File: {1}, Message: Table loading has been stopped due to too many errors.", primaryTable, _getPath(subFile));
+			DbDebugHelper.StoppedLoading += delegate(object sender, DataSource source, string subFile, BaseDatabase db) {
+				Log = String.Format("Table: {0}, File: {1}, Message: Table loading has been stopped due to too many errors.", source, _getPath(subFile));
 			};
 		}
 

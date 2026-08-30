@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Linq;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using Database;
 using ErrorManager;
 using SDE.Core;
-using SDE.Editor.Generic;
-using SDE.Editor.Generic.Core;
-using SDE.Editor.Generic.TabsMakerCore;
+using SDE.Databases.Generic.Common;
+using SDE.Editor.Database;
+using SDE.Editor.Generic.DbTabs;
 using TokeiLibrary;
 using TokeiLibrary.WPF.Styles;
+using Utilities;
 
 namespace SDE.View.Dialogs {
 	/// <summary>
@@ -22,7 +23,7 @@ namespace SDE.View.Dialogs {
 		public ReplaceDialog(SdeEditor editor)
 			: base("Replace all...", "convert.png", SizeToContent.Height, ResizeMode.NoResize) {
 			_editor = editor;
-			_editor.SelectionChanged += new SdeEditor.SdeSelectionChangedEventHandler(_editor_SelectionChanged);
+			_editor.SelectionChanged += _editor_SelectionChanged;
 
 			InitializeComponent();
 			Extensions.SetMinimalSize(this);
@@ -36,35 +37,41 @@ namespace SDE.View.Dialogs {
 			_update();
 		}
 
-		public class DbAttributeWrapper {
-			public DbAttribute Attribute { get; private set; }
+		public class ObjectTreeViewModel {
+			public string FieldName;
+			public ObjectTree ObjectTree;
 
-			public DbAttributeWrapper(DbAttribute attribute) {
-				Attribute = attribute;
+			public ObjectTreeViewModel(string fieldName, ObjectTree objectTree) {
+				FieldName = fieldName;
+				ObjectTree = objectTree;
 			}
 
 			public override string ToString() {
-				return Attribute.DisplayName ?? Attribute.AttributeName;
+				return FieldName;
 			}
 		}
 
-		private GDbTab _tab;
+		private DbTab _tab;
 
 		private void _update() {
-			GDbTab tab = _editor.FindTopmostTab();
+			DbTab tab = _editor.FindTopmostTab();
 
 			if (tab != null) {
 				try {
-					if (_cbAttribute.ItemsSource != null && _tab == tab) {
+					if (_cbField.ItemsSource != null && _tab == tab) {
 						_buttonOk.IsEnabled = true;
-						_cbAttribute.IsEnabled = true;
+						_cbField.IsEnabled = true;
 						return;
 					}
 
 					_tab = tab;
-					_cbAttribute.ItemsSource = _tab.DbComponent.AttributeList.Attributes.Skip(1).Where(p => (p.Visibility & VisibleState.VisibleAndForceShow) != 0).Select(p => new DbAttributeWrapper(p));
+					
+					var modelType = _tab.Settings.ModelAttribute.DataType;
+					var objectTree = TypeTreeHelper.GetObjectTree(modelType);
+
+					_cbField.ItemsSource = objectTree.FieldsOrMembers.Where(p => p.Value.Member is FieldInfo).Select(p => new ObjectTreeViewModel(p.Key, p.Value)).OrderBy(p => p.FieldName);
 					_buttonOk.IsEnabled = true;
-					_cbAttribute.IsEnabled = true;
+					_cbField.IsEnabled = true;
 					return;
 				}
 				catch (Exception err) {
@@ -72,9 +79,9 @@ namespace SDE.View.Dialogs {
 				}
 			}
 
-			_cbAttribute.ItemsSource = null;
+			_cbField.ItemsSource = null;
 			_buttonOk.IsEnabled = false;
-			_cbAttribute.IsEnabled = false;
+			_cbField.IsEnabled = false;
 		}
 
 		protected override void GRFEditorWindowKeyDown(object sender, KeyEventArgs e) {
@@ -90,15 +97,51 @@ namespace SDE.View.Dialogs {
 			_replace();
 		}
 
-		private void _replace<T>(GDbTab tab, DbAttribute attribute) {
-			var aDb = tab.DbComponent.To<T>();
+		private void _replace(DbTab tab, ObjectTreeViewModel objectTreeViewModel) {
+			var commands = tab.Table.Commands;
 
 			try {
-				if (attribute.DataType == typeof(bool) && attribute.DataConverter.GetType() == typeof(DefaultValueConverter)) {
-					aDb.Table.Commands.Set(tab._listView.SelectedItems.Cast<ReadableTuple<T>>().ToList(), attribute, Boolean.Parse(_tbNewValue.Text));
+				var fieldName = objectTreeViewModel.FieldName;
+				var fieldInfo = objectTreeViewModel.ObjectTree.Member as FieldInfo;
+				var modelType = tab.Settings.ModelAttribute.DataType;
+
+				if (fieldInfo == null)
+					return;
+
+				var tuples = tab.List.SelectedItems.Cast<ReadableTuple>().ToList();
+				var method = commands.GetType().GetMethods().Where(p => p.Name == "SetModelsValue").FirstOrDefault(m => {
+					// Must be generic with exactly 2 generic arguments: <TModel, TFieldValue>
+					if (!m.IsGenericMethod || m.GetGenericArguments().Length != 2)
+						return false;
+
+					var parameters = m.GetParameters();
+
+					if (parameters.Length != 4)
+						return false;
+
+					bool matchParameters =
+						parameters[0].ParameterType.IsGenericType && // List<ReadableTuple>
+						parameters[1].ParameterType == typeof(string) && // fieldName
+						parameters[3].ParameterType == typeof(int); // modelAttributeIndex
+
+					return matchParameters;
+				});
+
+				var genericMethod = method.MakeGenericMethod(modelType, fieldInfo.FieldType);
+
+				if (objectTreeViewModel.ObjectTree.IsCollection)
+					throw new NotImplementedException();
+				else if (fieldInfo.FieldType == typeof(bool)) {
+					genericMethod.Invoke(commands, new object[] { tuples, fieldName, _boolNewValue.IsChecked == true, 1 });
+				}
+				else if (fieldInfo.FieldType.BaseType == typeof(Enum)) {
+					genericMethod.Invoke(commands, new object[] { tuples, fieldName, ((EnumInfoBase)_enumNewValue.SelectedItem).Value, 1 });
+				}
+				else if (fieldInfo.FieldType == typeof(string)) {
+					genericMethod.Invoke(commands, new object[] { tuples, fieldName, _stringNewValue.Text, 1 });
 				}
 				else {
-					aDb.Table.Commands.Set(tab._listView.SelectedItems.Cast<ReadableTuple<T>>().ToList(), attribute, _tbNewValue.Text);
+					throw new Exception("Unsupported field type: " + fieldInfo.FieldType);
 				}
 			}
 			finally {
@@ -108,27 +151,44 @@ namespace SDE.View.Dialogs {
 
 		private void _replace() {
 			try {
-				if (_cbAttribute.SelectedIndex < 0)
-					throw new Exception("No attribute selected.");
+				if (!(_cbField.SelectedItem is ObjectTreeViewModel objectTree))
+					throw new Exception("No field selected.");
 
-				DbAttribute attribute = ((DbAttributeWrapper) _cbAttribute.SelectedItem).Attribute;
-				GDbTab tab = _tab;
+				var fieldName = objectTree.FieldName;
+				DbTab tab = _tab;
 
 				if (tab == null)
 					throw new Exception("No tab selected.");
 
-				if (tab._listView.SelectedItems.Count == 0)
+				if (tab.ListView.SelectedItems.Count == 0)
 					throw new Exception("No items selected (select the items to replace in the list).");
 
-				if (tab.DbComponent is AbstractDb<int>) {
-					_replace<int>(tab, attribute);
-				}
-				else if (tab.DbComponent is AbstractDb<string>) {
-					_replace<string>(tab, attribute);
-				}
+				_replace(tab, objectTree);
 			}
 			catch (Exception err) {
 				ErrorHandler.HandleException(err);
+			}
+		}
+
+		private void _cbField_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+			_stringNewValue.Visibility = Visibility.Collapsed;
+			_boolNewValue.Visibility = Visibility.Collapsed;
+			_enumNewValue.Visibility = Visibility.Collapsed;
+
+			if (_cbField.SelectedItem is ObjectTreeViewModel objectTreeViewModel) {
+				var fieldInfo = objectTreeViewModel.ObjectTree.Member as FieldInfo;
+
+				if (fieldInfo.FieldType == typeof(bool)) {
+					_boolNewValue.Visibility = Visibility.Visible;
+				}
+				else if (fieldInfo.FieldType.BaseType == typeof(Enum)) {
+					_enumNewValue.Visibility = Visibility.Visible;
+					_enumNewValue.ItemsSource = EnumInfos.GetEnumInfoList(fieldInfo.FieldType);
+					_enumNewValue.SelectedIndex = 0;
+				}
+				else if (fieldInfo.FieldType == typeof(string)) {
+					_stringNewValue.Visibility = Visibility.Visible;
+				}
 			}
 		}
 	}

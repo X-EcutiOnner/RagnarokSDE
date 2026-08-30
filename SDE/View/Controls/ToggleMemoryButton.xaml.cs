@@ -34,11 +34,11 @@ namespace SDE.View.Controls {
 
 			ListViewDataTemplateHelper.GenerateListViewTemplateNew(_listView, new ListViewDataTemplateHelper.GeneralColumnInfo[] {
 				new ListViewDataTemplateHelper.GeneralColumnInfo {Header = "Commands", DisplayExpression = "CommandDescription", FixedWidth = 230, TextAlignment = TextAlignment.Left, ToolTipBinding = "CommandDescription" }
-			}, null, new string[] { }, "generateHeader", "false");
+			}, null, new string[] { }, generateHeader: false);
 
-			_listView.PreviewMouseMove += new MouseEventHandler(_undoListView_PreviewMouseMove);
-			_cbSubMenu.DropDownOpened += new EventHandler(_cbSubMenu_DropDownOpened);
-			_listView.SelectionChanged += new SelectionChangedEventHandler(_listView_SelectionChanged);
+			_listView.PreviewMouseMove += _undoListView_PreviewMouseMove;
+			_cbSubMenu.DropDownOpened += _cbSubMenu_DropDownOpened;
+			_listView.SelectionChanged += _listView_SelectionChanged;
 			_label.Content = String.Format(DisplayFormat, CurrentIndex + 1);
 
 			_button.MouseEnter += delegate {
@@ -73,8 +73,7 @@ namespace SDE.View.Controls {
 		public event ToggleMemoryButtonEventHandler Click;
 
 		public void OnClick(int index) {
-			ToggleMemoryButtonEventHandler handler = Click;
-			if (handler != null) handler(this, index);
+			Click?.Invoke(this, index);
 		}
 
 		public static void OnCurrentIndexChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) {
@@ -113,15 +112,15 @@ namespace SDE.View.Controls {
 				}
 			}
 
-			_listView.SelectionChanged += new SelectionChangedEventHandler(_listView_SelectionChanged);
+			_listView.SelectionChanged += _listView_SelectionChanged;
 		}
 
 		private void _undoListView_PreviewMouseMove(object sender, MouseEventArgs e) {
 			var item = _listView.GetObjectAtPoint<ListViewItem>(e.GetPosition(_listView));
 
 			if (item != null) {
-				CurrentIndex = _listView.Items.IndexOf(((ListViewItem)item).Content);
-				((ListViewItem)item).Focus();
+				CurrentIndex = _listView.Items.IndexOf(item.Content);
+				item.Focus();
 			}
 			else {
 				CurrentIndex = -1;

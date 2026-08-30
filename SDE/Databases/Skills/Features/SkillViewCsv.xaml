@@ -1,0 +1,432 @@
+﻿<UserControl x:Class="SDE.Databases.Skills.Features.SkillViewCsv"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:SDE.Databases.Quests.Features"
+			 xmlns:f="clr-namespace:SDE.Databases.Generic.Controls"
+             xmlns:TokeiLibrary="clr-namespace:TokeiLibrary;assembly=TokeiLibrary"
+             xmlns:ListView="clr-namespace:TokeiLibrary.WPF.Styles.ListView;assembly=TokeiLibrary"
+             xmlns:Tmc="clr-namespace:SDE.Editor.Generic.DbTabs"
+             xmlns:Converters="clr-namespace:SDE.Databases.Generic.Converters"
+			 xmlns:wpfbugfix="clr-namespace:TokeiLibrary.WpfBugFix;assembly=TokeiLibrary"
+             xmlns:Common="clr-namespace:SDE.Databases.Generic.Common"
+             xmlns:SkillCommon="clr-namespace:SDE.Databases.Skills.Common"
+			 xmlns:styles="clr-namespace:TokeiLibrary.WPF.Styles;assembly=TokeiLibrary"
+			 xmlns:sys="clr-namespace:System;assembly=mscorlib"
+			 Foreground="{DynamicResource TextForeground}"
+			 mc:Ignorable="d" 
+			 MaxWidth="800"
+			 HorizontalAlignment="Left"
+             d:DesignWidth="800">
+	<UserControl.Resources>
+		<Converters:ItemPreviewConverter x:Key="ItemPreviewConverter"/>
+		<Converters:MobPreviewConverter x:Key="MobPreviewConverter"/>
+		<Converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+	</UserControl.Resources>
+	<Grid x:Name="_gridContainer" IsEnabled="{Binding IsModelValid}">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="auto" />
+			<RowDefinition />
+		</Grid.RowDefinitions>
+		<f:HorizontalGrid ColumnCount="2">
+			<f:Property Label="Skill ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Id}" ToolTip="Unique skill ID." >
+				<f:Property.Editor>
+					<f:ValidationTextBox IsReadOnly="True" Text="{Binding Id}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:EditKeyButton SourceField="{Binding Id}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Range" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Range}" ToolTip="The skill range (number of cells)­­.&#x0a;Combo skills do not check for range when used, if range is &lt; 5, the skill is considered melee-range.&#x0a;(Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Range, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Range}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Hit mode" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding DMG_Hit}" ToolTip="Skill hit type. (Default: Normal)" >
+				<f:Property.Editor>
+					<ComboBox ItemsSource="{Binding Path=(SkillCommon:DamageTypeInfo.AllVisibleOnly)}" SelectedItem="{Binding DMG_Hit, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Target type" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding INF_TargetType}" ToolTip="The general behavior of the skill&#x0a;(passive, enemy, place, self, friend, trap). (Default: Passive)" >
+				<f:Property.Editor>
+					<ComboBox ItemsSource="{Binding Path=(SkillCommon:SkillTargetTypeInfo.AllVisibleOnly)}" SelectedItem="{Binding INF_TargetType, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Element" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Element}" ToolTip="Skill element. (Default: Neutral)" >
+				<f:Property.Editor>
+					<Grid>
+						<f:ValidationTextBox Text="{Binding Element, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsNotAllIdenticalElement, Converter={StaticResource BooleanToVisibilityConverter}}" IsEnabled="{Binding IsNotAllIdenticalElement}" />
+						<ComboBox ItemsSource="{Binding Path=(SkillCommon:SkillElementTypeInfo.AllVisibleOnly)}" SelectedItem="{Binding Element_ComboBoxSelected, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding IsAllIdenticalElement, Converter={StaticResource BooleanToVisibilityConverter}}" IsEnabled="{Binding IsAllIdenticalElement}" />
+					</Grid>
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditEnumButton SourceField="{Binding Element}" MaxLevel="{Binding MaxLevel}" SourceType="{x:Type SkillCommon:SkillElementType}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Damage flags" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding NK_DamageFlags}" ToolTip="The behavior of the skill's attack.&#x0a;(No damage, spash area, etc)." >
+				<f:Property.Editor>
+					<f:ValidationFlagEdit Text="{Binding NK_DamageFlags, UpdateSourceTrigger=PropertyChanged}" SourceType="{x:Type SkillCommon:DamageFlag}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Splash/effect range" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding SplashArea}" ToolTip="The skill's splash or effect range (-1 for screen-wide)." >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding SplashArea, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding SplashArea}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Max level" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding MaxLevel}" ToolTip="The skill's max level." >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding MaxLevel, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Number of hits" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding HitCount}" ToolTip="Number of hits (when positive, damage is increased by hits, negative values just show number of hits without increasing total damage). (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding HitCount, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding HitCount}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Cast cancel" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding CastCancel}" ToolTip="Defines wheter or not the skill can be interrupted. Cancel cast when hit. (Default: true)" >
+				<f:Property.Editor>
+					<CheckBox IsChecked="{Binding CastCancel}" VerticalAlignment="Center" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Cast def reduction" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding CastDefenseReduction}" ToolTip="Defense reduction rate during skill cast. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding CastDefenseReduction, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Flags (inf2)" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding INF2_Flags}" ToolTip="Sets special attributes to the skill (ex: quest skill, npc skill, trap, ignores land protected, etc)." >
+				<f:Property.Editor>
+					<f:ValidationFlagEdit Text="{Binding INF2_Flags, UpdateSourceTrigger=PropertyChanged}" SourceType="{x:Type SkillCommon:Inf2Flag}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Max active" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding ActiveInstance}" ToolTip="Max amount of skill instances to place on the ground when player_land_skill_limit/monster_land_skill_limit is enabled. For skills that attack using a path, this is the path length to be used. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding ActiveInstance, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding ActiveInstance}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Attack type" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding BF_Type}" ToolTip="Skill type. (Default: None)" >
+				<f:Property.Editor>
+					<ComboBox ItemsSource="{Binding Path=(SkillCommon:BattleFlagTypeInfo.AllVisibleOnly)}" SelectedItem="{Binding BF_Type, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Knockback" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Knockback}" ToolTip="The amount of cells the skill's knockback will apply. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Knockback, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Knockback}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+			
+			<f:Property Label="No cast zones" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding NoCastFlags}" ToolTip="Defines unusable skills in map types and zones." >
+				<f:Property.Editor>
+					<f:ValidationFlagEdit Text="{Binding NoCastFlags, UpdateSourceTrigger=PropertyChanged}" SourceType="{x:Type SkillCommon:NoCastFlag}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Name" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Name}" ToolTip="Skill Aegis name." >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Description" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Description}" ToolTip="Skill description." >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<TextBlock Style="{StaticResource DbTextBlock}" Text="Skill Duration" FontStyle="Italic" Margin="3 10 3 3" />
+			<f:Separator />
+
+			<f:Property Label="Cast time flags" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding CastTimeFlags}" ToolTip="Effects of the skill's cast time. (Optional)" >
+				<f:Property.Editor>
+					<f:ValidationFlagEdit Text="{Binding CastTimeFlags, UpdateSourceTrigger=PropertyChanged}" SourceType="{x:Type SkillCommon:SkillCastFlag}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Cast delay flags" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding CastDelayFlags}" ToolTip="Effects of the skill's delay. (Optional)" >
+				<f:Property.Editor>
+					<f:ValidationFlagEdit Text="{Binding CastDelayFlags, UpdateSourceTrigger=PropertyChanged}" SourceType="{x:Type SkillCommon:SkillCastFlag}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Casting time" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding CastTime}" ToolTip="The amount of time it takes to cast the skill (in milliseconds)." >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding CastTime, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding CastTime}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Cooldown" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Cooldown}" ToolTip="The amount of time until the character can use this skill again (in milliseconds)." >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Cooldown, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Cooldown}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="After cast&#x0a;act delay" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding AfterCastActDelay}" ToolTip="The amount of time the character cannot use skills (in milliseconds)." >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding AfterCastActDelay, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding AfterCastActDelay}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="After cast&#x0a;walk delay" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding AfterCastWalkDelay}" ToolTip="The amount of time before the character can move again (in milliseconds)." >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding AfterCastWalkDelay, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding AfterCastWalkDelay}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Duration1" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Duration1}" ToolTip="Duration of the skill in milliseconds. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Duration1, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Duration1}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Duration2" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Duration2}" ToolTip="Duration of the skill in milliseconds. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Duration2, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Duration2}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Fixed cast time" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding FixedCastTime}" ToolTip="Time that is fixed during cast of the skill in milliseconds. (Default: 0)" Visibility="{Binding Renewal, Converter={StaticResource BooleanToVisibilityConverter}}" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding FixedCastTime, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding FixedCastTime}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+			<f:Separator Visibility="{Binding Renewal, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+			<TextBlock Style="{StaticResource DbTextBlock}" Text="Skill Requirements" FontStyle="Italic" Margin="3 10 3 3" />
+			<f:Separator />
+
+			<f:Property Label="HP Cost" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Require.HpCost}" ToolTip="HP required to cast. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Require.HpCost, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Require.HpCost}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="HP Rate Cost" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Require.HpRateCost}" ToolTip="HP rate required to cast. If positive, uses current HP, else uses Max HP. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Require.HpRateCost, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Require.HpRateCost}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="SP Cost" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Require.SpCost}" ToolTip="SP required to cast. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Require.SpCost, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Require.SpCost}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="SP Rate Cost" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Require.SpRateCost}" ToolTip="SP rate required to cast. If positive, uses current SP, else uses Max SP. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Require.SpRateCost, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Require.SpRateCost}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Max HP Trigger" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Require.MaxHpTrigger}" ToolTip="Maximum amount of HP to cast the skill. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Require.MaxHpTrigger, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Require.MaxHpTrigger}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Zeny Cost" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Require.ZenyCost}" ToolTip="Zeny required to cast. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Require.ZenyCost, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Require.ZenyCost}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Required ammo&#x0a;types" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Require.Ammo}" ToolTip="Ammo required to cast. (Default: None)" >
+				<f:Property.Editor>
+					<f:ValidationFlagEdit Text="{Binding Require.Ammo, UpdateSourceTrigger=PropertyChanged}" SourceType="{x:Type SkillCommon:AmmoFlag}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Required ammo&#x0a;amount" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Require.AmmoAmount}" ToolTip="Ammo amount required to cast. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Require.AmmoAmount, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Require.AmmoAmount}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Required weapons" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Require.Weapon}" ToolTip="Weapon required to cast. (Default: All)" >
+				<f:Property.Editor>
+					<f:ValidationFlagEdit Text="{Binding Require.Weapon, UpdateSourceTrigger=PropertyChanged}" SourceType="{x:Type SkillCommon:WeaponFlag}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Required items" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Require.ItemCost}" ToolTip="Item required to cast. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Require.ItemCost, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding Require.ItemCostPreview}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:ItemCostButton SourceField="{Binding Require.ItemCost}" MaxLevel="10" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Required state" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Require.State}" ToolTip="Special state required to cast. (Default: None)" >
+				<f:Property.Editor>
+					<ComboBox ItemsSource="{Binding Path=(SkillCommon:RequiredStateTypeInfo.AllVisibleOnly)}" SelectedItem="{Binding Require.State, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Spirit sphere cost" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Require.SpiritSphereCost}" ToolTip="Spirit sphere required to cast. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Require.SpiritSphereCost, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Require.SpiritSphereCost}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Required statuses" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Require.Status}" ToolTip="Status change required to cast." >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Require.Status, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Require.Status}" MaxLevel="10" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Required equipment" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Require.Equipment}" ToolTip="Equipped item required to cast. (Default: None)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Require.Equipment, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding Require.EquipmentPreview}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Require.Equipment}" MaxLevel="10" Equipment="True" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<TextBlock Style="{StaticResource DbTextBlock}" Text="Unit" FontStyle="Italic" Margin="3 10 3 3" />
+			<f:Separator />
+
+			<f:Property Label="ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Unit.Id}" ToolTip="Skill unit ID." >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Unit.Id, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Alternate ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Unit.Id}" ToolTip="Alternate skill unit ID. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Unit.AlternateId, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Layout" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Unit.Layout}" ToolTip="Skill unit layout. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Unit.Layout, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Unit.Layout}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Range" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Unit.Range}" ToolTip="Skill unit range. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Unit.Range, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:LevelEditIntegerButton SourceField="{Binding Unit.Range}" MaxLevel="{Binding MaxLevel}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Interval" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Unit.Interval}" ToolTip="Skill unit interval in milliseconds. (Default: 0)" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Unit.Interval, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Target" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Unit.Target}" ToolTip="Skill unit target type. (Default: All)" >
+				<f:Property.Editor>
+					<ComboBox ItemsSource="{Binding Path=(SkillCommon:BattleCheckTargetTypeInfo.AllVisibleOnly)}" SelectedItem="{Binding Unit.Target, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Flag" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Unit.Flag}" ToolTip="Skill unit flags. (Default: None)" >
+				<f:Property.Editor>
+					<f:ValidationFlagEdit Text="{Binding Unit.Flag, UpdateSourceTrigger=PropertyChanged}" SourceType="{x:Type SkillCommon:SkillUnitFlag}" />
+				</f:Property.Editor>
+			</f:Property>
+			<f:Separator />
+
+			<TextBlock Style="{StaticResource DbTextBlock}" Text="Others" FontStyle="Italic" Margin="3 10 3 3" />
+			<f:Separator />
+
+			<f:Property Label="Copyable by" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding CopyFlagsSkill}" ToolTip="Which skill can copy this current skill." >
+				<f:Property.Editor>
+					<f:ValidationFlagEdit Text="{Binding CopyFlagsSkill, UpdateSourceTrigger=PropertyChanged}" SourceType="{x:Type SkillCommon:SkillCopyFlag}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Ignore copy&#x0a;requirements" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding CopyFlagsRemoveRequirement}" ToolTip="Remove a requirement type. (Optional)" >
+				<f:Property.Editor>
+					<f:ValidationFlagEdit Text="{Binding CopyFlagsRemoveRequirement, UpdateSourceTrigger=PropertyChanged}" SourceType="{x:Type SkillCommon:SkillRequireFlag}" />
+				</f:Property.Editor>
+			</f:Property>
+		</f:HorizontalGrid>
+	</Grid>
+</UserControl>

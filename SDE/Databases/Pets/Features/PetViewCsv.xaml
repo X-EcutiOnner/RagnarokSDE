@@ -1,0 +1,206 @@
+﻿<UserControl x:Class="SDE.Databases.Pets.Features.PetViewCsv"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:SDE.Databases.Quests.Features"
+			 xmlns:f="clr-namespace:SDE.Databases.Generic.Controls"
+             xmlns:TokeiLibrary="clr-namespace:TokeiLibrary;assembly=TokeiLibrary"
+             xmlns:ListView="clr-namespace:TokeiLibrary.WPF.Styles.ListView;assembly=TokeiLibrary"
+             xmlns:Tmc="clr-namespace:SDE.Editor.Generic.DbTabs"
+             xmlns:Converters="clr-namespace:SDE.Databases.Generic.Converters"
+			 xmlns:wpfbugfix="clr-namespace:TokeiLibrary.WpfBugFix;assembly=TokeiLibrary"
+             xmlns:Common="clr-namespace:SDE.Databases.Generic.Common"
+			 xmlns:styles="clr-namespace:TokeiLibrary.WPF.Styles;assembly=TokeiLibrary"
+			 Foreground="{DynamicResource TextForeground}"
+			 mc:Ignorable="d" 
+			 MaxWidth="800"
+			 HorizontalAlignment="Left"
+			 d:DesignWidth="800">
+	<UserControl.Resources>
+		<Converters:ItemPreviewConverter x:Key="ItemPreviewConverter"/>
+		<Converters:MobPreviewConverter x:Key="MobPreviewConverter"/>
+	</UserControl.Resources>
+	<Grid x:Name="_gridContainer" IsEnabled="{Binding IsModelValid}">
+		<f:HorizontalGrid ColumnCount="2">
+			<f:Property Label="Mob ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Mob}">
+				<f:Property.Editor>
+					<f:ValidationTextBox IsReadOnly="True" Text="{Binding Mob}" PreviewText="{Binding Mob, Converter={StaticResource MobPreviewConverter}}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:SelectTupleButton Source="Mobs" SourceField="{Binding Mob}" />
+					<f:EditKeyButton SourceField="{Binding Mob}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Separator />
+
+			<f:Property Label="Sprite name" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding AegisName}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding AegisName, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding AegisName, Converter={StaticResource ItemPreviewConverter}}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:MobToAegisNameButton SourceField="{Binding Mob}" DestinationField="{Binding AegisName}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Display name" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding DisplayName}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding DisplayName, Converter={StaticResource ItemPreviewConverter}}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:MobToNameButton SourceField="{Binding Mob}" DestinationField="{Binding DisplayName}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Lure item ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding TameItem}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding TameItem, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding TameItem, Converter={StaticResource ItemPreviewConverter}}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:SelectTupleButton Source="Items" SourceField="{Binding TameItem}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Egg ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding EggItem}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding EggItem, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding EggItem, Converter={StaticResource ItemPreviewConverter}}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:SelectTupleButton Source="Items" SourceField="{Binding EggItem}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Equip ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding EquipItem}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding EquipItem, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding EquipItem, Converter={StaticResource ItemPreviewConverter}}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:SelectTupleButton Source="Items" SourceField="{Binding EquipItem}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Food ID" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding FoodItem}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding FoodItem, UpdateSourceTrigger=PropertyChanged}" PreviewText="{Binding FoodItem, Converter={StaticResource ItemPreviewConverter}}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:SelectTupleButton Source="Items" SourceField="{Binding FoodItem}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Hunger decrease amount" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Fullness}" >
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Fullness, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Hunger decrease delay" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding HungryDelay}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding HungryDelay, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:TimeEditButton SourceField="{Binding HungryDelay}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Intimacy increased&#x0a;when fed" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding IntimacyFed}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding IntimacyFed, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Intimacy decreased&#x0a;when overfed" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding IntimacyOverfed}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding IntimacyOverfed, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Initial intimacy" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding IntimacyStart}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding IntimacyStart, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Initial lost after dying" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding IntimacyOwnerDie}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding IntimacyOwnerDie, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Capture success rate" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding CaptureRate}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding CaptureRate, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:RateEditButton SourceField="{Binding CaptureRate}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Speed" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Speed}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Speed, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+			</f:Property>
+			
+			<f:Property Label="Special performance" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding SpecialPerformance}">
+				<f:Property.Editor>
+					<CheckBox IsChecked="{Binding SpecialPerformance}" VerticalAlignment="Center" />
+				</f:Property.Editor>
+			</f:Property>
+
+			<f:Property Label="Disable pet talk" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding DisablePetTalk}">
+				<f:Property.Editor>
+					<CheckBox IsChecked="{Binding DisablePetTalk}" VerticalAlignment="Center" />
+				</f:Property.Editor>
+			</f:Property>
+			
+			<f:Property Label="Attack rate" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding AttackRate}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding AttackRate, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:RateEditButton SourceField="{Binding AttackRate}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Defense attack rate" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding RetaliateRate}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding RetaliateRate, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:RateEditButton SourceField="{Binding RetaliateRate}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Change target rate" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding ChangeTargetRate}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding ChangeTargetRate, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:RateEditButton SourceField="{Binding ChangeTargetRate}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Separator />
+
+			<f:Property Label="Script" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding Script}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding Script, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:ScriptEditButton SourceField="{Binding Script}" />
+				</f:Property.Extras>
+			</f:Property>
+
+			<f:Property Label="Loyal script" Tmc:DisplayablePropertyHelper.SearchBinding="{Binding SupportScript}">
+				<f:Property.Editor>
+					<f:ValidationTextBox Text="{Binding SupportScript, UpdateSourceTrigger=PropertyChanged}" />
+				</f:Property.Editor>
+				<f:Property.Extras>
+					<f:ScriptEditButton SourceField="{Binding SupportScript}" />
+				</f:Property.Extras>
+			</f:Property>
+		</f:HorizontalGrid>
+	</Grid>
+</UserControl>

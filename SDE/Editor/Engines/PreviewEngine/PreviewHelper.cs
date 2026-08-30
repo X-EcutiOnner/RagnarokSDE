@@ -8,17 +8,18 @@ using ErrorManager;
 using GRF.Core.GroupedGrf;
 using GRF.FileFormats.ActFormat;
 using GRF.FileFormats.SprFormat;
-using SDE.Editor.Generic;
-using SDE.Editor.Generic.Core;
-using SDE.Editor.Generic.Lists;
-using SDE.Editor.Generic.TabsMakerCore;
-using SDE.Editor.Jobs;
-using SDE.Tools.ActViewer;
+using SDE.Databases.Generic.Common;
+using SDE.Databases.Generic.Common.Jobs;
+using SDE.Databases.Items.Features;
+using SDE.Editor.Database;
+using SDE.View;
+using SDE.View.Editors;
 using TokeiLibrary;
 using TokeiLibrary.WPF;
 using TokeiLibrary.WpfBugFix;
 using Utilities.Extension;
 using Utilities.Services;
+using static SDE.Databases.Generic.Controls.MobSpriteImage;
 
 namespace SDE.Editor.Engines.PreviewEngine {
 	public class PreviewHelper {
@@ -29,24 +30,23 @@ namespace SDE.Editor.Engines.PreviewEngine {
 
 		private readonly Act _bodyReferenceDefault;
 		private readonly Act _emptyAct = new Act(new Spr());
-		private readonly FrameViewer _frameViewer;
 		private readonly Border _gridSpriteMissing;
 		private readonly Act _headReferenceDefault;
 		private readonly RangeObservableCollection<Job> _jobs = new RangeObservableCollection<Job>();
 		private readonly ListView _listView;
+		private FrameRendererEditor _editor;
 		private readonly List<IViewIdPreview> _previews = new List<IViewIdPreview>();
-		private readonly List<ActReference> _references;
-		private readonly CompactActIndexSelector _selector;
-		private readonly FrameViewerSettings _settings;
 		private readonly TextBox _tbSpriteMissing;
-		private Act _act;
-		private GDbTab _currentTab;
 		private IViewIdPreview _lastMatch;
-		private ReadableTuple<int> _lastTuple;
+		private ReadableTuple _lastTuple;
 		private object _oldJob;
 		private GenderType? _overrideGender;
 		private MultiGrfReader _metaGrf;
 		private int _viewId;
+		private ViewIdActs _viewIdActs;
+
+		public Act DefaultBodyReference => _bodyReferenceDefault;
+		public Act DefaultHeadReference => _headReferenceDefault;
 
 		public int ViewId {
 			get { return _viewId; }
@@ -58,53 +58,30 @@ namespace SDE.Editor.Engines.PreviewEngine {
 
 		public static int LastestViewId { get; set; }
 
-		public Act Act {
-			get { return _act; }
-			set { _act = value; }
+		public PreviewHelper(RangeListView listView, BaseDatabase db) : this(listView, db, null, null, null, null) {
+
 		}
 
-		public PreviewHelper(RangeListView listView, AbstractDb<int> db, CompactActIndexSelector selector,
-			FrameViewer frameViewer, Border gridSpriteMissing, TextBox tbSpriteMissing
-			) {
+		public PreviewHelper(RangeListView listView, BaseDatabase db, FrameRendererEditor editor, Border gridSpriteMissing, TextBox tbSpriteMissing, ViewIdActs viewIdActs) {
 			_listView = listView;
-			_selector = selector;
-			_frameViewer = frameViewer;
+			_editor = editor;
 			_gridSpriteMissing = gridSpriteMissing;
 			_tbSpriteMissing = tbSpriteMissing;
 			_listView.ItemsSource = _jobs;
-
-			if (db != null)
-				_metaGrf = db.ProjectDatabase.MetaGrf;
+			_viewIdActs = viewIdActs;
+			_metaGrf = SdeEditor.MetaGrf;
 
 			Db = db;
 
 			_headReferenceDefault = new Act(ApplicationManager.GetResource("ref_head.act"), new Spr(ApplicationManager.GetResource("ref_head.spr")));
 			_bodyReferenceDefault = new Act(ApplicationManager.GetResource("ref_body.act"), new Spr(ApplicationManager.GetResource("ref_body.spr")));
 
-			_settings = new FrameViewerSettings();
-			_settings.Act = () => _act;
-			_references = new List<ActReference>();
-			_references.Add(new ActReference { Act = DefaultBodyReference, Mode = ZMode.Back, Show = true });
-			_references.Add(new ActReference { Act = DefaultHeadReference, Mode = ZMode.Back, Show = true });
-			_settings.ReferencesGetter = () => _references;
-
-			if (_selector != null) {
-				_selector.Init(_frameViewer);
-				_selector.Load(null);
-				_selector.FrameChanged += (s, p) => _frameViewer.Update();
-				_selector.ActionChanged += (s, p) => _frameViewer.Update();
-				_selector.SpecialFrameChanged += (s, p) => _frameViewer.Update();
-				_settings.SelectedAction = () => _selector.SelectedAction;
-				_settings.SelectedFrame = () => _selector.SelectedFrame;
+			if (_viewIdActs != null) {
+				_viewIdActs.Head = _headReferenceDefault;
+				_viewIdActs.Body = _bodyReferenceDefault;
 			}
 
-			for (int i = 0; i < 104; i++) _emptyAct.AddAction();
-
-			if (_frameViewer != null) {
-				_frameViewer.InitComponent(_settings);
-			}
-
-			_listView.SelectionChanged += new SelectionChangedEventHandler(_jobChanged);
+			_listView.SelectionChanged += _jobChanged;
 			_listView.PreviewMouseDown += _listView_PreviewMouseDown;
 			_listView.PreviewMouseUp += _listView_PreviewMouseDown;
 
@@ -114,27 +91,13 @@ namespace SDE.Editor.Engines.PreviewEngine {
 			_previews.Add(new GarmentPreview());
 			_previews.Add(new NpcPreview());
 			_previews.Add(new NullPreview());
-		}
 
-		private Act _bodyReference {
-			get { return _settings.References[0].Act; }
-			set { _settings.ReferencesGetter()[0].Act = value; }
-		}
-
-		private Act _headReference {
-			get { return _settings.References[1].Act; }
-		}
-
-		public Act DefaultBodyReference {
-			get { return _bodyReferenceDefault; }
-		}
-
-		public Act DefaultHeadReference {
-			get { return _headReferenceDefault; }
+			for (int i = 0; i < 104; i++)
+				_emptyAct.AddAction();
 		}
 
 		public string PreviewSprite { get; set; }
-		public AbstractDb<int> Db { get; private set; }
+		public BaseDatabase Db { get; private set; }
 
 		public Job Job {
 			get { return _listView.SelectedItem as Job; }
@@ -156,16 +119,16 @@ namespace SDE.Editor.Engines.PreviewEngine {
 				if (_overrideGender != null)
 					return _overrideGender.Value;
 
-				var gender = _lastTuple.GetValue<GenderType>(ServerItemAttributes.Gender);
+				var gender = _lastTuple.GetModel<Item>().Gender;
 
-				if (gender == GenderType.Both || gender == GenderType.Undefined)
-					return GenderType.Male;
+				if (gender == GenderType.SEX_BOTH)
+					return GenderType.SEX_MALE;
 				return gender;
 			}
 		}
 
 		public string GenderString {
-			get { return EncodingService.FromAnyToDisplayEncoding(Gender == GenderType.Male ? "남" : "여"); }
+			get { return EncodingService.FromAnyToDisplayEncoding(Gender == GenderType.SEX_MALE ? "남" : "여"); }
 		}
 
 		private void _listView_PreviewMouseDown(object sender, MouseButtonEventArgs e) {
@@ -182,8 +145,8 @@ namespace SDE.Editor.Engines.PreviewEngine {
 		public void SetJobs(List<Job> jobs) {
 			_jobs.Clear();
 
-			List<Job> j1 = jobs.Where(p => p.Name.StartsWith("Baby ")).ToList();
-			List<Job> j2 = jobs.Where(p => !p.Name.StartsWith("Baby ")).ToList();
+			List<Job> j1 = jobs.Where(p => p.IsBaby).ToList();
+			List<Job> j2 = jobs.Where(p => !p.IsBaby).ToList();
 
 			_jobs.AddRange(j2);
 			_jobs.AddRange(j1);
@@ -196,12 +159,21 @@ namespace SDE.Editor.Engines.PreviewEngine {
 		}
 
 		public void ResetPreview() {
-			_bodyReference = _bodyReferenceDefault;
+			_viewIdActs.Body = _bodyReferenceDefault;
 		}
 
 		public Act GetBodySprite(Job job, string gender = "남") {
-			var jobActionData = Grf.GetData(EncodingService.FromAnyToDisplayEncoding(@"data\sprite\인간족\몸통\" + gender + "\\" + job.GetSpriteName(Gender) + EncodingService.FromAnyToDisplayEncoding("_" + gender + ".act")));
-			var jobSpriteData = Grf.GetData(EncodingService.FromAnyToDisplayEncoding(@"data\sprite\인간족\몸통\" + gender + "\\" + job.GetSpriteName(Gender) + EncodingService.FromAnyToDisplayEncoding("_" + gender + ".spr")));
+			byte[] jobActionData;
+			byte[] jobSpriteData;
+
+			if (job.BaseJob == Job.Summoner) {
+				jobActionData = Grf.GetData(EncodingService.FromAnyToDisplayEncoding(@"data\sprite\도람족\몸통\" + gender + "\\" + job.GetResource(Gender) + EncodingService.FromAnyToDisplayEncoding("_" + gender + ".act")));
+				jobSpriteData = Grf.GetData(EncodingService.FromAnyToDisplayEncoding(@"data\sprite\도람족\몸통\" + gender + "\\" + job.GetResource(Gender) + EncodingService.FromAnyToDisplayEncoding("_" + gender + ".spr")));
+			}
+			else {
+				jobActionData = Grf.GetData(EncodingService.FromAnyToDisplayEncoding(@"data\sprite\인간족\몸통\" + gender + "\\" + job.GetResource(Gender) + EncodingService.FromAnyToDisplayEncoding("_" + gender + ".act")));
+				jobSpriteData = Grf.GetData(EncodingService.FromAnyToDisplayEncoding(@"data\sprite\인간족\몸통\" + gender + "\\" + job.GetResource(Gender) + EncodingService.FromAnyToDisplayEncoding("_" + gender + ".spr")));
+			}
 
 			if (jobActionData == null || jobSpriteData == null) {
 				AddError("resource error: sprite for job '" + job.Name + "' not found.");
@@ -211,24 +183,24 @@ namespace SDE.Editor.Engines.PreviewEngine {
 			return new Act(jobActionData, new Spr(jobSpriteData));
 		}
 
-		public List<string> TestItem(ReadableTuple<int> tuple, MultiGrfReader grf, Type compare = null) {
+		public List<string> TestItem(ReadableTuple tuple, MultiGrfReader grf, Type compare = null) {
 			var result = new List<string>();
 			_metaGrf = grf;
 			_lastTuple = tuple;
 
 			foreach (var preview in _previews) {
 				if (preview.CanRead(tuple) && !(preview is NullPreview) && (compare == null || preview.GetType() == compare)) {
-					string jobt = tuple.GetValue<string>(ServerItemAttributes.ApplicableJob);
-					var jobs = JobList.GetJobsFromHex("0x" + ((jobt == "") ? "FFFFFFFF" : jobt), tuple.GetIntNoThrow(ServerItemAttributes.Upper));
+					var model = tuple.GetModel<Item>();
+					var jobs = JobOperations.GetJobs(model.Jobs.ToUInt64(), model.Classes.ToFlag<ItemJobFlag>());
 					preview.Read(tuple, this, jobs);
 
 					_jobs.Clear();
 					_jobs.AddRange(jobs);
 
-					if (PreviewSprite == SpriteNone)
+					if (PreviewSprite == SpriteNone || PreviewSprite == null)
 						return result;
 
-					var gender = _lastTuple.GetValue<GenderType>(ServerItemAttributes.Gender);
+					var gender = _lastTuple.GetModel<Item>().Gender;
 
 					foreach (var job in jobs) {
 						_listView.SelectedItem = job;
@@ -237,11 +209,8 @@ namespace SDE.Editor.Engines.PreviewEngine {
 							continue;
 						}
 
-						if (gender == GenderType.Undefined)
-							gender = GenderType.Both;
-
-						if (gender == GenderType.Both || gender == GenderType.Female) {
-							_overrideGender = GenderType.Female;
+						if (gender == GenderType.SEX_BOTH || gender == GenderType.SEX_FEMALE) {
+							_overrideGender = GenderType.SEX_FEMALE;
 
 							var act = preview.GetSpriteFromJob(tuple, this);
 							var spr = act.ReplaceExtension(".spr");
@@ -250,8 +219,8 @@ namespace SDE.Editor.Engines.PreviewEngine {
 							result.Add(spr);
 						}
 
-						if (gender == GenderType.Both || gender == GenderType.Male) {
-							_overrideGender = GenderType.Male;
+						if (gender == GenderType.SEX_BOTH || gender == GenderType.SEX_MALE) {
+							_overrideGender = GenderType.SEX_MALE;
 
 							var act = preview.GetSpriteFromJob(tuple, this);
 							var spr = act.ReplaceExtension(".spr");
@@ -269,15 +238,14 @@ namespace SDE.Editor.Engines.PreviewEngine {
 			return result;
 		}
 
-		public void Read(ReadableTuple<int> tuple, GDbTab tab) {
+		public void Read(ReadableTuple tuple) {
 			PreviewSprite = null;
 			KeepPreviousPreviewPosition = true;
 			RemoveJobs();
 			RemoveError();
 			List<Job> jobs;
 			_lastTuple = tuple;
-			_metaGrf = tab.ProjectDatabase.MetaGrf;
-			_currentTab = tab;
+			_metaGrf = SdeEditor.MetaGrf;
 
 			foreach (var preview in _previews) {
 				if (preview.CanRead(tuple)) {
@@ -286,8 +254,8 @@ namespace SDE.Editor.Engines.PreviewEngine {
 					}
 
 					_lastMatch = preview;
-					string job = tuple.GetValue<string>(ServerItemAttributes.ApplicableJob);
-					jobs = JobList.GetJobsFromHex("0x" + ((job == "") ? "FFFFFFFF" : job), tuple.GetIntNoThrow(ServerItemAttributes.Upper));
+					var model = tuple.GetModel<Item>();
+					jobs = JobOperations.GetAllJobs(model.Jobs.ToUInt64(), model.Classes.ToFlag<ItemJobFlag>());
 					preview.Read(tuple, this, jobs);
 					break;
 				}
@@ -309,7 +277,7 @@ namespace SDE.Editor.Engines.PreviewEngine {
 			}
 
 			if (!KeepPreviousPreviewPosition) {
-				_selector.SetAction(_lastMatch.SuggestedAction);
+				_editor.IndexSelector.SelectedAction = _lastMatch.SuggestedAction;
 			}
 		}
 
@@ -340,7 +308,7 @@ namespace SDE.Editor.Engines.PreviewEngine {
 			RemoveError();
 
 			try {
-				_bodyReference = GetBodySprite(job, GenderString);
+				_viewIdActs.Body = GetBodySprite(job, GenderString);
 				_updatePreview(_lastMatch.GetSpriteFromJob(_lastTuple, this));
 			}
 			catch (Exception err) {
@@ -351,18 +319,17 @@ namespace SDE.Editor.Engines.PreviewEngine {
 		private void _updatePreview(string sprite) {
 			byte[] headActionData;
 			byte[] headSpriteData;
-			_act = _emptyAct;
-			_references.RemoveRange(2, _references.Count - 2);
+			_editor.Act = _emptyAct;
 
 			// Sprite has 3 states :
 			// correct path - may not be found
 			// null - do not update and show error
 			// none - do not update and do not show error
 			if (sprite == null) {
-				AddError("Resource error : couldn't find the specified sprite.");
+				AddError("Resource error: couldn't find the specified sprite.");
 			}
 			else if (sprite == SpriteDefault) {
-				_bodyReference = DefaultBodyReference;
+				_viewIdActs.Body = DefaultBodyReference;
 			}
 			else if (sprite == SpriteNone) {
 			}
@@ -371,52 +338,43 @@ namespace SDE.Editor.Engines.PreviewEngine {
 					headActionData = Grf.GetData(sprite);
 					headSpriteData = Grf.GetData(sprite.ReplaceExtension(".spr"));
 
-					if (headActionData != null && headSpriteData != null)
-						_act = new Act(headActionData, new Spr(headSpriteData));
-
-					if (headActionData == null || headSpriteData == null) {
-						SetError(String.Format("Resource error : sprite(s) not found \n{0} - {1}\n{2} - {3}",
-							sprite, headActionData == null ? "#MISSING" : "#FOUND", sprite.ReplaceExtension(".spr"), headSpriteData == null ? "#MISSING" : "#FOUND"));
+					if (headSpriteData == null && _lastMatch is GarmentPreview garmentPreview) {
+						headSpriteData = Grf.GetData(garmentPreview.GetSprite2FromJob(this));
 					}
 
-					//sprite = sprite.ReplaceExtension(EncodingService.FromAnyToDisplayEncoding("_검광.act"));
+					if (headActionData != null && headSpriteData != null)
+						_editor.Act = new Act(headActionData, new Spr(headSpriteData));
 
-					//headActionData = Grf.GetData(sprite);
-					//headSpriteData = Grf.GetData(sprite.ReplaceExtension(".spr"));
-					//
-					//if (headActionData != null && headSpriteData != null) {
-					//	Act act = new Act(headActionData, new Spr(headSpriteData));
-					//	act.AnchoredTo = _bodyReference;
-					//	_references.Add(new ActReference { Act = act, Mode = ZMode.Front, Show = true });
-					//}
+					if (headActionData == null || headSpriteData == null) {
+						SetError(String.Format("Resource error: sprite(s) not found \n{0} - {1}\n{2} - {3}",
+							sprite, headActionData == null ? "#MISSING" : "#FOUND", sprite.ReplaceExtension(".spr"), headSpriteData == null ? "#MISSING" : "#FOUND"));
+					}
 				}
 			}
 
-			_headReference.AnchoredTo = _bodyReference;
-			_act.AnchoredTo = _headReference;
-			_selector.Load(_act);
-			_frameViewer.SetGarmentMode(false);
+			_viewIdActs.Head.AnchoredTo = _viewIdActs.Body;
+			_editor.Act.AnchoredTo = _viewIdActs.Head;
 
-			_headReference.Commands.UndoAll();
-			_bodyReference.Commands.UndoAll();
-
-			if (_act != null) {
-				_act.Commands.UndoAll();
-			}
+			_viewIdActs.IsGarment = false;
+			_viewIdActs.Head.Commands.UndoAll();
+			_viewIdActs.Body.Commands.UndoAll();
+			_editor.Act?.Commands.UndoAll();
 
 			if (Job != null && Job.Name.StartsWith("Baby ")) {
-				_headReference.Commands.Backup(a => a.Magnify(0.75f, true));
-				_bodyReference.Commands.Backup(a => a.Magnify(0.75f, true));
-
-				if (_act != null)
-					_act.Commands.Backup(a => a.Magnify(0.75f, true));
+				_viewIdActs.Head.Commands.Backup(a => a.Magnify(0.75f, true));
+				_viewIdActs.Body.Commands.Backup(a => a.Magnify(0.75f, true));
+				_editor.Act?.Commands.Backup(a => a.Magnify(0.75f, true));
 			}
+
+			_editor.Act?.Safe();
 
 			if (_lastMatch is GarmentPreview) {
-				_frameViewer.SetGarmentMode(true);
+				_viewIdActs.IsGarment = true;
 			}
 
-			_frameViewer.Update();
+			_editor.OnActLoaded();
+			_editor.IndexSelector.Init(_editor, _editor.PreferedLoadingAction, 0);
+			_editor.FrameRenderer.Update();
 		}
 	}
 }

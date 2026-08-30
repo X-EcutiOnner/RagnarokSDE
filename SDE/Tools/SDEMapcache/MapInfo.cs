@@ -58,8 +58,7 @@ namespace SDE.Tools.SDEMapcache {
 		}
 
 		public virtual void OnPropertyChanged() {
-			PropertyChangedEventHandler handler = PropertyChanged;
-			if (handler != null) handler(this, new PropertyChangedEventArgs(""));
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(""));
 		}
 	}
 }

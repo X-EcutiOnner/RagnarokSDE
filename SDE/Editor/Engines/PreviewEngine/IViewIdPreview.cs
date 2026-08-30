@@ -1,17 +1,21 @@
 using System;
 using System.Collections.Generic;
-using SDE.Editor.Engines.LuaEngine;
-using SDE.Editor.Engines.Parsers;
-using SDE.Editor.Generic;
-using SDE.Editor.Generic.Lists;
-using SDE.Editor.Jobs;
+using SDE.Databases;
+using SDE.Databases.ClientItems.Features;
+using SDE.Databases.Generic.Common.Jobs;
+using SDE.Databases.Items.Common;
+using SDE.Databases.Items.Features;
+using SDE.Editor.Database;
+using SDE.Editor.LuaTables;
+using SDE.View;
+using Utilities.Extension;
 
 namespace SDE.Editor.Engines.PreviewEngine {
 	public interface IViewIdPreview {
 		int SuggestedAction { get; }
-		bool CanRead(ReadableTuple<int> tuple);
-		void Read(ReadableTuple<int> tuple, PreviewHelper helper, List<Job> jobs);
-		string GetSpriteFromJob(ReadableTuple<int> tuple, PreviewHelper helper);
+		bool CanRead(ReadableTuple tuple);
+		void Read(ReadableTuple tuple, PreviewHelper helper, List<Job> jobs);
+		string GetSpriteFromJob(ReadableTuple tuple, PreviewHelper helper);
 	}
 
 	public class HeadgearPreview : IViewIdPreview {
@@ -20,12 +24,13 @@ namespace SDE.Editor.Engines.PreviewEngine {
 			get { return 33; }
 		}
 
-		public bool CanRead(ReadableTuple<int> tuple) {
-			return ItemParser.IsArmorType(tuple) && (tuple.GetIntNoThrow(ServerItemAttributes.Location) & 7937) != 0;
+		public bool CanRead(ReadableTuple tuple) {
+			var model = tuple.GetModel<Item>();
+			return model.Type == ItemType.IT_ARMOR && (model.Locations.ToLong() & 7937) != 0;
 		}
 
-		public void Read(ReadableTuple<int> tuple, PreviewHelper helper, List<Job> jobs) {
-			helper.PreviewSprite = LuaHelper.GetSpriteFromViewId(tuple.GetIntNoThrow(ServerItemAttributes.ClassNumber), LuaHelper.ViewIdTypes.Headgear, helper.Db, tuple);
+		public void Read(ReadableTuple tuple, PreviewHelper helper, List<Job> jobs) {
+			helper.PreviewSprite = LuaHelper.GetSpriteFromViewId(tuple.GetModel<Item>().View.ToInt(), LuaHelper.ViewIdTypes.Headgear, tuple);
 
 			if (String.IsNullOrEmpty(helper.PreviewSprite)) {
 				helper.PreviewSprite = null;
@@ -36,7 +41,7 @@ namespace SDE.Editor.Engines.PreviewEngine {
 			helper.SetJobs(jobs);
 		}
 
-		public string GetSpriteFromJob(ReadableTuple<int> tuple, PreviewHelper helper) {
+		public string GetSpriteFromJob(ReadableTuple tuple, PreviewHelper helper) {
 			if (helper.PreviewSprite == PreviewHelper.SpriteNone)
 				return helper.PreviewSprite;
 
@@ -51,12 +56,13 @@ namespace SDE.Editor.Engines.PreviewEngine {
 			get { return 33; }
 		}
 
-		public bool CanRead(ReadableTuple<int> tuple) {
-			return ItemParser.IsArmorType(tuple) && tuple.GetIntNoThrow(ServerItemAttributes.Location) == 32;
+		public bool CanRead(ReadableTuple tuple) {
+			var model = tuple.GetModel<Item>();
+			return model.Type == ItemType.IT_ARMOR && model.Locations.ToLong() == 32;
 		}
 
-		public void Read(ReadableTuple<int> tuple, PreviewHelper helper, List<Job> jobs) {
-			helper.PreviewSprite = LuaHelper.GetSpriteFromViewId(tuple.GetIntNoThrow(ServerItemAttributes.ClassNumber), LuaHelper.ViewIdTypes.Shield, helper.Db, tuple);
+		public void Read(ReadableTuple tuple, PreviewHelper helper, List<Job> jobs) {
+			helper.PreviewSprite = LuaHelper.GetSpriteFromViewId(tuple.GetModel<Item>().View.ToInt(), LuaHelper.ViewIdTypes.Shield, tuple);
 
 			if (helper.PreviewSprite == null) {
 				helper.SetError(PreviewHelper.ViewIdNotSet);
@@ -66,7 +72,7 @@ namespace SDE.Editor.Engines.PreviewEngine {
 			helper.SetJobs(jobs);
 		}
 
-		public string GetSpriteFromJob(ReadableTuple<int> tuple, PreviewHelper helper) {
+		public string GetSpriteFromJob(ReadableTuple tuple, PreviewHelper helper) {
 			return LuaHelper.GetSpriteFromJob(helper.Grf, helper.Job, helper, helper.PreviewSprite, LuaHelper.ViewIdTypes.Shield) + ".act";
 		}
 		#endregion
@@ -78,12 +84,25 @@ namespace SDE.Editor.Engines.PreviewEngine {
 			get { return 33; }
 		}
 
-		public bool CanRead(ReadableTuple<int> tuple) {
-			return ItemParser.IsWeaponType(tuple);
+		public bool CanRead(ReadableTuple tuple) {
+			var model = tuple.GetModel<Item>();
+			return model.Type == ItemType.IT_ARMOR;
 		}
 
-		public void Read(ReadableTuple<int> tuple, PreviewHelper helper, List<Job> jobs) {
-			helper.PreviewSprite = LuaHelper.GetSpriteFromViewId(tuple.GetIntNoThrow(ServerItemAttributes.ClassNumber), LuaHelper.ViewIdTypes.Weapon, helper.Db, tuple);
+		public void Read(ReadableTuple tuple, PreviewHelper helper, List<Job> jobs) {
+			// Try to get the ViewId from the client info table instead
+			var itemModel = tuple.GetModel<Item>();
+			int viewId = itemModel.View.ToInt();
+
+			if (String.IsNullOrEmpty(itemModel.View)) {
+				var cTuple = SdeEditor.Project.GetDb(DataSources.ClientItem).Table.TryGetTuple(tuple.Key);
+
+				if (cTuple != null) {
+					viewId = cTuple.GetModel<ClientItem>().ClassNumber.ToInt();
+				}
+			}
+			
+			helper.PreviewSprite = LuaHelper.GetSpriteFromViewId(viewId, LuaHelper.ViewIdTypes.Weapon, tuple);
 
 			if (helper.PreviewSprite == null) {
 				helper.SetError(PreviewHelper.ViewIdNotSet);
@@ -93,7 +112,7 @@ namespace SDE.Editor.Engines.PreviewEngine {
 			helper.SetJobs(jobs);
 		}
 
-		public string GetSpriteFromJob(ReadableTuple<int> tuple, PreviewHelper helper) {
+		public string GetSpriteFromJob(ReadableTuple tuple, PreviewHelper helper) {
 			return LuaHelper.GetSpriteFromJob(helper.Grf, helper.Job, helper, helper.PreviewSprite, LuaHelper.ViewIdTypes.Weapon) + ".act";
 		}
 		#endregion
@@ -105,12 +124,13 @@ namespace SDE.Editor.Engines.PreviewEngine {
 			get { return 9; }
 		}
 
-		public bool CanRead(ReadableTuple<int> tuple) {
-			return ItemParser.IsArmorType(tuple) && (tuple.GetIntNoThrow(ServerItemAttributes.Location) == 4 || tuple.GetIntNoThrow(ServerItemAttributes.Location) == 8192);
+		public bool CanRead(ReadableTuple tuple) {
+			var model = tuple.GetModel<Item>();
+			return model.Type == ItemType.IT_ARMOR && (model.Locations.ToLong() == 4 || model.Locations.ToLong() == 8192);
 		}
 
-		public void Read(ReadableTuple<int> tuple, PreviewHelper helper, List<Job> jobs) {
-			helper.PreviewSprite = LuaHelper.GetSpriteFromViewId(tuple.GetIntNoThrow(ServerItemAttributes.ClassNumber), LuaHelper.ViewIdTypes.Garment, helper.Db, tuple);
+		public void Read(ReadableTuple tuple, PreviewHelper helper, List<Job> jobs) {
+			helper.PreviewSprite = LuaHelper.GetSpriteFromViewId(tuple.GetModel<Item>().View.ToInt(), LuaHelper.ViewIdTypes.Garment, tuple);
 
 			if (helper.PreviewSprite == null) {
 				helper.SetError(PreviewHelper.ViewIdNotSet);
@@ -120,8 +140,12 @@ namespace SDE.Editor.Engines.PreviewEngine {
 			helper.SetJobs(jobs);
 		}
 
-		public string GetSpriteFromJob(ReadableTuple<int> tuple, PreviewHelper helper) {
-			return LuaHelper.GetSpriteFromJob(helper.Grf, helper.Job, helper, helper.PreviewSprite, LuaHelper.ViewIdTypes.Garment) + ".act";
+		public string GetSpriteFromJob(ReadableTuple tuple, PreviewHelper helper) {
+			return LuaHelper.GetSpritePathFromJob(helper.Job, @"data\sprite\로브\" + helper.PreviewSprite + @"\" + helper.GenderString + "\\{0}_" + helper.GenderString, helper.Gender, helper.PreviewSprite) + ".act";
+		}
+
+		public string GetSprite2FromJob(PreviewHelper helper) {
+			return $@"data\sprite\로브\{helper.PreviewSprite}\{helper.PreviewSprite}.spr".ToDisplayEncoding();
 		}
 		#endregion
 	}
@@ -132,12 +156,12 @@ namespace SDE.Editor.Engines.PreviewEngine {
 			get { return 4; }
 		}
 
-		public bool CanRead(ReadableTuple<int> tuple) {
+		public bool CanRead(ReadableTuple tuple) {
 			return false;
 		}
 
-		public void Read(ReadableTuple<int> tuple, PreviewHelper helper, List<Job> jobs) {
-			helper.PreviewSprite = LuaHelper.GetSpriteFromViewId(helper.ViewId, LuaHelper.ViewIdTypes.Npc, helper.Db, tuple);
+		public void Read(ReadableTuple tuple, PreviewHelper helper, List<Job> jobs) {
+			helper.PreviewSprite = LuaHelper.GetSpriteFromViewId(helper.ViewId, LuaHelper.ViewIdTypes.Npc, tuple);
 
 			if (helper.PreviewSprite == null) {
 				helper.SetError(PreviewHelper.ViewIdNotSet);
@@ -147,7 +171,7 @@ namespace SDE.Editor.Engines.PreviewEngine {
 			helper.SetJobs(new List<Job>());
 		}
 
-		public string GetSpriteFromJob(ReadableTuple<int> tuple, PreviewHelper helper) {
+		public string GetSpriteFromJob(ReadableTuple tuple, PreviewHelper helper) {
 			var name = LuaHelper.GetSpriteFromJob(helper.Grf, null, helper, helper.PreviewSprite, LuaHelper.ViewIdTypes.Npc);
 			if (name.EndsWith(".gr2"))
 				return name;
@@ -162,15 +186,15 @@ namespace SDE.Editor.Engines.PreviewEngine {
 			get { return 0; }
 		}
 
-		public bool CanRead(ReadableTuple<int> tuple) {
+		public bool CanRead(ReadableTuple tuple) {
 			return true;
 		}
 
-		public void Read(ReadableTuple<int> tuple, PreviewHelper helper, List<Job> jobs) {
+		public void Read(ReadableTuple tuple, PreviewHelper helper, List<Job> jobs) {
 			helper.SetError("Item type not supported.");
 		}
 
-		public string GetSpriteFromJob(ReadableTuple<int> tuple, PreviewHelper helper) {
+		public string GetSpriteFromJob(ReadableTuple tuple, PreviewHelper helper) {
 			return PreviewHelper.SpriteNone;
 		}
 		#endregion

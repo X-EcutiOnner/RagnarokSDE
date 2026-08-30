@@ -20,7 +20,6 @@ using Utilities;
 using Utilities.Extension;
 using Utilities.Services;
 using AsyncOperation = GrfToWpfBridge.Application.AsyncOperation;
-using Extensions = SDE.Core.Extensions;
 
 namespace SDE.Tools.SDEMapcache {
 	/// <summary>
@@ -150,12 +149,12 @@ namespace SDE.Tools.SDEMapcache {
 
 		private void _fakeProgress(int mode) {
 			if (mode == 1) {
-				_asyncOperation.SetAndRunOperation(new GrfThread(_dull, _cache, 200), delegate {
+				_asyncOperation.SetAndRunOperation(new GrfThread(_dull, _cache), delegate {
 					_progressBar.SetSpecialState(TkProgressBar.ProgressStatus.FileLoaded);
 				});
 			}
 			else
-				_asyncOperation.SetAndRunOperation(new GrfThread(_dull, _cache, 200));
+				_asyncOperation.SetAndRunOperation(new GrfThread(_dull, _cache));
 		}
 
 		private void _dull() {
@@ -404,7 +403,7 @@ namespace SDE.Tools.SDEMapcache {
 								_cache.Commands.End();
 								AProgress.Finalize(_cache);
 							}
-						}, _cache, 200));
+						}, _cache));
 					}
 					else if (file.IsExtension(".dat")) {
 						Mapcache cache = new Mapcache(file);

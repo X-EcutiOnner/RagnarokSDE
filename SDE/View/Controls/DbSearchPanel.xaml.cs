@@ -17,9 +17,9 @@ namespace SDE.View.Controls {
 
 			_unclickableBorder.Init(_cbSubMenu);
 
-			_searchTextBox.GotFocus += new RoutedEventHandler(_searchTextBox_GotFocus);
-			_searchTextBox.LostFocus += new RoutedEventHandler(_searchTextBox_LostFocus);
-			_searchTextBox.TextChanged += new TextChangedEventHandler(_searchTextBox_TextChanged);
+			_searchTextBox.GotFocus += _searchTextBox_GotFocus;
+			_searchTextBox.LostFocus += _searchTextBox_LostFocus;
+			_searchTextBox.TextChanged += _searchTextBox_TextChanged;
 			_buttonOpenSubMenu.Click += _buttonOpenSubMenu_Click;
 
 			IsEnabledChanged += delegate {

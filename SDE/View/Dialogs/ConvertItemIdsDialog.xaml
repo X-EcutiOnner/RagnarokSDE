@@ -3,9 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:styles="clr-namespace:TokeiLibrary.WPF.Styles;assembly=TokeiLibrary"
         xmlns:listView="clr-namespace:TokeiLibrary.WPF.Styles.ListView;assembly=TokeiLibrary"
+        xmlns:TokeiLibrary="clr-namespace:TokeiLibrary;assembly=TokeiLibrary"
         xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
         xmlns:application="clr-namespace:GrfToWpfBridge.Application;assembly=GrfToWpfBridge"
-        Height="485" Width="660" Background="{StaticResource TabItemBackground}" Foreground="{StaticResource TextForeground}">
+		SnapsToDevicePixels="True" UseLayoutRounding="True"
+        Height="485" Width="660"
+		Background="{DynamicResource TabItemBackground}" Foreground="{DynamicResource TextForeground}">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition />
@@ -27,7 +30,7 @@
             <Label Content="Preview output" VerticalAlignment="Center" Padding="0" Margin="3" HorizontalAlignment="Left" Grid.Row="2" />
             <avalonedit:TextEditor x:Name="_tbDest"   Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" ShowLineNumbers="True" IsReadOnly="True" />
         </Grid>
-        <Grid listView:WpfUtils.IsDraggable="True" Grid.Row="1" Height="40" Background="{DynamicResource UIDialogBackground}">
+        <Grid TokeiLibrary:WpfProperties.IsDraggable="True" Grid.Row="1" Height="40" Background="{DynamicResource UIDialogBackground}">
             <Grid Margin="0 0 3 0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="auto" />
