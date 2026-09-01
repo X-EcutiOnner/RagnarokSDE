@@ -6,7 +6,6 @@ using TokeiLibrary.WPF.Styles.ListView;
 using TokeiLibrary;
 using ErrorManager;
 using SDE.Databases.Mobs.Parser;
-using SDE.View.Dialogs;
 using SDE.Core;
 using SDE.Databases.MobSkills.Features;
 using SDE.Databases.MobSkills.Parser;

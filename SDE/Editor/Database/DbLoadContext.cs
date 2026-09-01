@@ -1,5 +1,4 @@
-﻿using System;
-using SDE.Databases;
+﻿using SDE.Databases;
 using SDE.Editor.Generic.Parsers.Generic;
 using SDE.Editor.Parsers;
 using Utilities;

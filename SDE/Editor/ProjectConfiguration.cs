@@ -148,6 +148,11 @@ namespace SDE.Editor {
 			set { ConfigAsker["[Server database editor - Client - Item info]"] = value; }
 		}
 
+		public static string ClientEquipmentProperties {
+			get { return ConfigAsker["[Server database editor - Client - EquipmentProperties]", @"data\luafiles514\lua files\EquipmentProperties\EquipmentProperties.lub"]; }
+			set { ConfigAsker["[Server database editor - Client - EquipmentProperties]"] = value; }
+		}
+
 		public static bool AutocompleteIdDisplayName {
 			get { return Boolean.Parse(ConfigAsker["[Server database editor - Autocomplete - Id. display name]", true.ToString()]); }
 			set { ConfigAsker["[Server database editor - Autocomplete - Id. display name]"] = value.ToString(); }

@@ -5,7 +5,6 @@ using System.Windows;
 using SDE.Databases.Items.Parser;
 using TokeiLibrary.WPF.Styles;
 using TokeiLibrary;
-using SDE.View.Dialogs;
 using TokeiLibrary.WPF;
 using ErrorManager;
 using System;

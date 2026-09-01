@@ -1,5 +1,4 @@
-﻿using System;
-using System.Windows.Controls;
+﻿using System.Windows.Controls;
 using Database;
 using SDE.Databases.Generic.SearchDescriptors;
 using Utilities;

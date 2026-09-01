@@ -5,7 +5,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
 using SDE.ApplicationConfiguration;
-using SDE.Editor.Files;
 
 namespace SDE.Editor.Writers {
 	// This class implements a TextReader for reading characters to a Stream. 

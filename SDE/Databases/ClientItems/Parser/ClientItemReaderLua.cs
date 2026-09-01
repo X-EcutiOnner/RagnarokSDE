@@ -8,7 +8,6 @@ using SDE.Databases.ClientItems.Features;
 using SDE.Databases.Generic.Parser;
 using SDE.Editor;
 using SDE.Editor.Database;
-using SDE.Editor.Generic.Parsers.Generic;
 using SDE.View;
 using System.Collections.Generic;
 using System.IO;

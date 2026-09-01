@@ -17,7 +17,6 @@ using SDE.Databases.Quests;
 using SDE.Databases.Skills;
 using SDE.Databases.Titles;
 using SDE.Editor.Generic.DbTabs;
-using SDE.View;
 
 namespace SDE.Editor.Database {
 	/// <summary>

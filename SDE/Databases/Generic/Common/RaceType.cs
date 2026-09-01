@@ -19,7 +19,7 @@ namespace SDE.Databases.Generic.Common {
 		RC_PLAYER_HUMAN,
 		RC_PLAYER_DORAM,
 		RC_ALL,
-		RC_MAX //auto upd enum for array Race
+		RC_MAX, //auto upd enum for array Race
 	}
 
 	public static class RaceTypeInfo {

@@ -6,7 +6,6 @@ using System.Windows.Input;
 using ErrorManager;
 using GRF.Threading;
 using SDE.ApplicationConfiguration;
-using SDE.Editor.Backups;
 using SDE.View.Dialogs;
 using TokeiLibrary;
 using TokeiLibrary.WPF;

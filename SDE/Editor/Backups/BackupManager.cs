@@ -1,17 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using GRF.Core;
-using GRF.Core.GroupedGrf;
 using GRF.IO;
 using GRF.GrfSystem;
 using SDE.ApplicationConfiguration;
 using Utilities;
 using Utilities.Extension;
 using SDE.View;
-using SDE.Editor.Files;
 
 namespace SDE.Editor.Backups {
 	public sealed class BackupManager {

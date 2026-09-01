@@ -4,7 +4,6 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using SDE.ApplicationConfiguration;
 using SDE.View.Dialogs;
-using SDE.View.Editors.TimeEdit;
 using TokeiLibrary;
 using TokeiLibrary.WPF.Styles;
 

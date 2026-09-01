@@ -13,7 +13,6 @@ using SDE.Databases;
 using SDE.Databases.ClientItems.Parser;
 using SDE.Editor.Backups;
 using SDE.Editor.Database.Commands;
-using SDE.Editor.Files;
 using SDE.View;
 using TokeiLibrary;
 using Utilities;

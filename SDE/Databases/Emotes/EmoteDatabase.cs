@@ -1,7 +1,6 @@
 ﻿using SDE.Core;
 using SDE.Databases.Emotes;
 using SDE.Editor.Database;
-using SDE.Editor.Generic;
 using System;
 using System.Linq;
 

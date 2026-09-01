@@ -12,7 +12,6 @@ using GrfToWpfBridge.Application;
 using ICSharpCode.AvalonEdit.Document;
 using SDE.ApplicationConfiguration;
 using SDE.Core.Avalon;
-using SDE.Editor.Engines;
 using TokeiLibrary;
 using TokeiLibrary.Shortcuts;
 using TokeiLibrary.WPF;

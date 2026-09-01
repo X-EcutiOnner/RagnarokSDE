@@ -42,8 +42,7 @@ namespace SDE.Core.Avalon {
 
 			_textEditor.Foreground = Application.Current.Resources["TextForeground"] as Brush;
 			_textEditor.Background = Application.Current.Resources["AvalonEditorBackground"] as Brush;
-			_textEditor.Dispatch(p => p.TextArea.SelectionCornerRadius = 0);
-			_textEditor.Dispatch(p => p.TextArea.SelectionBorder = new Pen(_textEditor.TextArea.SelectionBrush, 0));
+			_textEditor.TextArea.SelectionCornerRadius = 0;
 			_textEditor.TextArea.SelectionBorder = new Pen(_textEditor.TextArea.SelectionBrush, 1);
 			//_textEditor.KeyDown += _textEditor_KeyDown;
 			SearchPanel panel = new SearchPanel();
@@ -72,6 +71,9 @@ namespace SDE.Core.Avalon {
 			_textEditor.TextArea.TextView.BackgroundRenderers.Add(_renderer);
 			_textEditor.TextArea.KeyDown += _textArea_KeyDown;
 			_textArea = _textEditor.TextArea;
+
+			_textEditor.TextArea.CommandBindings.Add(new CommandBinding(MoveLineUp, OnMoveLineUp));
+			_textEditor.TextArea.CommandBindings.Add(new CommandBinding(MoveLineDown, OnMoveLineDown));
 		}
 
 		public static readonly RoutedCommand MoveLineUp = new RoutedCommand(

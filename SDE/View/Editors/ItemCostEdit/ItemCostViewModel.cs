@@ -1,11 +1,5 @@
 ﻿using SDE.Databases.Generic.Features;
-using SDE.View.Dialogs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SDE.View.Editors.ItemCostEdit {
 	public class ItemCostViewModel : BaseModelView<ItemCost> {

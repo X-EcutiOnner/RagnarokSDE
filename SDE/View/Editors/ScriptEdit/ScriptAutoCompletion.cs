@@ -4,7 +4,6 @@ using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Editing;
 using SDE.ApplicationConfiguration;
 using SDE.Core.Avalon;
-using SDE.View.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;

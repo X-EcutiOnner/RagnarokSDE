@@ -6,7 +6,6 @@ using TokeiLibrary.WPF.Styles.ListView;
 using TokeiLibrary;
 using ErrorManager;
 using SDE.Databases.Pets.Parser;
-using SDE.View.Dialogs;
 using System.Globalization;
 using SDE.View;
 using SDE.View.Editors;

@@ -10,7 +10,6 @@ using SDE.ApplicationConfiguration;
 using SDE.Databases;
 using SDE.Editor.Database;
 using SDE.Editor.Generic.DbTabs;
-using SDE.View;
 using TokeiLibrary;
 using TokeiLibrary.WPF;
 

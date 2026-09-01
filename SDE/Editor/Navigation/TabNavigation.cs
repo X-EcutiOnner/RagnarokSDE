@@ -10,7 +10,6 @@ using SDE.Editor.Database;
 using SDE.Editor.Generic.DbTabs;
 using TokeiLibrary;
 using Utilities.Commands;
-using Tuple = Database.Tuple;
 
 namespace SDE.Editor.Navigation {
 	/// <summary>

@@ -1,7 +1,6 @@
 ﻿using ErrorManager;
 using SDE.Databases.ClientItems.Features;
 using SDE.Databases.Generic.Parser;
-using SDE.Editor.Database;
 using SDE.Editor.LuaTables;
 using SDE.View;
 using SDE.View.Dialogs;

@@ -1,5 +1,4 @@
-﻿using SDE.Databases.Generic.Controls;
-using SDE.Databases.Mobs.Features;
+﻿using SDE.Databases.Mobs.Features;
 using SDE.Editor.Database;
 using SDE.View;
 using System;

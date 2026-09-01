@@ -8,13 +8,10 @@ using SDE.ApplicationConfiguration;
 using SDE.Core.Avalon;
 using SDE.Databases;
 using SDE.Databases.Generic.Parser;
+using SDE.Databases.ItemCombos.Features;
 using SDE.Databases.Skills.Features;
-using SDE.Editor.Generic.Parsers.Generic;
 using SDE.View.Dialogs;
-using SDE.View.Editors;
-using SDE.View.Editors.ScriptEdit;
 using TokeiLibrary.WPF.Styles;
-using Utilities;
 
 namespace SDE.View.Editors.ScriptEdit {
 	/// <summary>
@@ -39,7 +36,7 @@ namespace SDE.View.Editors.ScriptEdit {
 				ScriptEditorList.rAthenaScriptFunctions.Select(p => (p, DataType.ScriptFunction)).Concat(
 				ScriptEditorList.rAthenaScriptConstants.Select(p => (p, DataType.ScriptConstant)).Concat(
 				skills.Select(p => (p, DataType.ScriptSkill))
-				)).ToList());
+			)).ToList());
 
 			_textEditor.Text = script;
 			_textEditor.TextChanged += (e, a) => OnValueChanged();
@@ -51,11 +48,7 @@ namespace SDE.View.Editors.ScriptEdit {
 			};
 		}
 
-		public string Text {
-			get {
-				return Methods.Aggregate(_textEditor.Text.Split(new string[] {Environment.NewLine, "\n"}, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim(' ', '\t') + " ").ToList(), "").Trim(' ');
-			}
-		}
+		public string Text => DbWriter.ScriptToSingleLineScript(_textEditor.Text);
 
 		public Grid Footer { get { return _footerGrid; } }
 		public event Action ValueChanged;
@@ -82,6 +75,29 @@ namespace SDE.View.Editors.ScriptEdit {
 
 		public void DisableOk() {
 			_buttonOk.Visibility = Visibility.Hidden;
+		}
+
+		private void _buttonFromEquipment_Click(object sender, RoutedEventArgs e) {
+			// Find current item ID
+			var tab = SdeEditor.Instance.FindTopmostTab();
+			var tuple = tab.SelectedItem;
+
+			if (tuple == null)
+				return;
+
+			string script;
+
+			if (tab.Database.Source == DataSources.ItemCombo || tab.Database.Source == DataSources.ItemComboImport) {
+				script = LuaEquipmentProperties.CreateAthenaScript(tuple.GetModel<ItemCombo>());
+			}
+			else {
+				script = LuaEquipmentProperties.CreateAthenaScript(tuple.Key);
+			}
+
+			if (script == null)
+				return;
+
+			_textEditor.Document.Replace(0, _textEditor.Document.TextLength, script);
 		}
 	}
 

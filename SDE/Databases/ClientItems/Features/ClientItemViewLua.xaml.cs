@@ -9,7 +9,6 @@ using TokeiLibrary.WPF;
 using TokeiLibrary;
 using System.Windows;
 using System.Text;
-using SDE.Editor.Generic.Parsers.Generic;
 using SDE.Databases.Items.Features;
 using SDE.View;
 using SDE.View.Editors.ScriptEdit;

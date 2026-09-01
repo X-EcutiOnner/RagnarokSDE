@@ -5,9 +5,7 @@ using GRF.IO;
 using SDE.ApplicationConfiguration;
 using SDE.Databases;
 using SDE.Editor.Backups;
-using SDE.Editor.Files;
 using SDE.Editor.Parsers;
-using SDE.View;
 using Utilities.Extension;
 
 namespace SDE.Editor.Database {

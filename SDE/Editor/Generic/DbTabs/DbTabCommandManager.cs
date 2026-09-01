@@ -21,7 +21,6 @@ using System.Globalization;
 using SDE.Databases;
 using SDE.Editor.Database;
 using SDE.Editor.Navigation;
-using SDE.Editor.Files;
 
 namespace SDE.Editor.Generic.DbTabs {
 	public class DbTabCommandManager {

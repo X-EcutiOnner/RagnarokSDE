@@ -1,7 +1,4 @@
-﻿using ErrorManager;
-using SDE.ApplicationConfiguration;
-using SDE.Editor.Database;
-using SDE.Editor.Files;
+﻿using SDE.Editor.Database;
 using SDE.Editor.Generic.Parsers.Generic;
 using SDE.Editor.Parsers;
 using System;

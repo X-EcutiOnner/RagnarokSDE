@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Database.Commands;
 using SDE.ApplicationConfiguration;
@@ -9,10 +10,9 @@ using SDE.Editor.Database;
 using SDE.Editor.Files;
 using SDE.Editor.Parsers.Libconfig;
 using Utilities;
-using Utilities.Extension;
 
 namespace SDE.Editor.Parsers.Yaml {
-	public class YamlParser {
+	public unsafe class YamlParser {
 		public ParserObject Output { get; set; }
 		private readonly List<string> _allLines;
 		private readonly List<ParserKeyValue> _writeKeyValues;
@@ -38,7 +38,18 @@ namespace SDE.Editor.Parsers.Yaml {
 
 			TextFileHelper.LatestFile = file;
 
-			_parser_main(new YamlFileData(file));
+			byte[] data = File.ReadAllBytes(file);
+			
+			fixed (byte* p = data) {
+				_p = p;
+				_lastLineStartOffset = _p;
+				_end = p + data.Length;
+				_lineNumber = 1;
+				_fileName = file;
+				_encoding = SdeAppConfiguration.EncodingServer;
+
+				_parser_main();
+			}
 
 			if (mode == ParserMode.Write) {
 				var list = Output as ParserArrayBase;
@@ -103,306 +114,26 @@ namespace SDE.Editor.Parsers.Yaml {
 			}
 		}
 
-		private class YamlFileData {
-			public byte[] Data;
-			public int Position;
-			public int LineNumber;
-			public int CurrentLineIndent;
-			public int ValueLength;
-			private int _lastLineStartOffset = 0;
-			public string FileName { get; private set; }
-
-			public int Length {
-				get { return Data.Length; }
-			}
-
-			public bool CanRead {
-				get { return Position < Data.Length; }
-			}
-
-			public YamlFileData(string file) {
-				Data = File.ReadAllBytes(file);
-				FileName = file;
-				LineNumber = 1;
-			}
-
-			public string ReadKey() {
-				var b = new ByteBuilder();
-				int startPosition = Position;
-				byte previousChar = 0;
-				
-				while (CanRead) {
-					byte c = Data[Position];
-
-					if (c == '\r' || c == '\n' || c == ':' || (previousChar == ' ' || previousChar == '\t') && c == '#')
-						break;
-
-					previousChar = c;
-					b.Append(c);
-					Position++;
-				}
-
-				return b.ToString();
-			}
-
-			public string ReadWord() {
-				var b = new ByteBuilder();
-
-				while (CanRead) {
-					byte c = Data[Position];
-
-					if (c == '\r' || c == '\n' || c == ':' || c == ',' || c == ']')
-						break;
-
-					b.Append(c);
-					Position++;
-				}
-
-				return b.ToString();
-			}
-
-			public void Trim() {
-				while (CanRead) {
-					char c = (char)Data[Position];
-
-					if (c == ' ' || c == '\t') {
-						Position++;
-						continue;
-					}
-
-					if (c == '#') {	// Skip comment line when trimming end of key or word
-						while (CanRead) {
-							if (Data[Position++] == '\n') {
-								Position--;
-								return;
-							}
-						}
-					}
-
-					break;
-				}
-			}
-
-			public bool IsLetter(char b) {
-				if (b >= 'a' && b <= 'z' ||
-					b >= 'A' && b <= 'Z' ||
-					b >= '0' && b <= '9' ||
-					b == '_' || b == '-' || b == '\'' || b == '.' || b == '+' || b == '?' || b == '<' || b == '>' || b == '/')
-					return true;
-				return false;
-			}
-
-			public void NextLine() {
-				LineNumber++;
-				CurrentLineIndent = 0;
-				_lastLineStartOffset = Position;
-			}
-
-			public bool EoL() {
-				if (CanRead) {
-					if (Data[Position] == '\n' || Data[Position] == '\r' && Data[Position + 1] == '\n')
-						return true;
-				}
-
-				return false;
-			}
-
-			public string ReadValue() {
-				var b = new ByteBuilder();
-				ValueLength = 0;
-
-				if (Data[Position] == '\"') {
-					Position++;
-
-					while (CanRead && Data[Position] != '\r' && Data[Position] != '\n') {
-						if (Data[Position] == '\"' && Data[Position - 1] != '\\') {
-							Position++;
-							break;
-						}
-
-						b.Append(Data[Position]);
-						Position++;
-					}
-
-					ValueLength = 1;
-					return b.ToString();
-				}
-				else if (Data[Position] == '|' || Data[Position] == '>') {
-					int indent = CurrentLineIndent;
-
-					SkipLine();
-
-					MoveToIndentEnd();
-
-					if (CurrentLineIndent < indent)	// Technically valid
-						return "";
-
-					// Remove all comment blocks, makes it easier to handle afterwards
-					indent = CurrentLineIndent;
-					int readLines = 0;
-					bool trim = true;
-					bool blockComment = false;
-					int read = 0;
-
-					while (CanRead) {
-						char c = (char)Data[Position];
-						
-						if (c == '\n' || c == '\r' && Position + 1 < Length && Data[Position + 1] == '\n') {
-							if (c == '\n') {
-								Position++;
-							}
-							else {
-								Position += 2;
-							}
-
-							NextLine();
-							MoveToIndentEnd(indent);
-
-							if (read > 0)
-								b.Append((byte)' ');
-
-							readLines++;
-							trim = true;
-							read = 0;
-							continue;
-						}
-
-						if (CurrentLineIndent < indent) { // Needs to be checked after to make an exception for empty lines
-							break;
-						}
-
-						if (Position + 1 < Length) {
-							if (blockComment) {
-								if (c == '*' && Data[Position + 1] == '/') {
-									blockComment = false;
-									Position++;
-								}
-
-								Position++;
-								continue;
-							}
-
-							if (c == '/' && Data[Position + 1] == '/') {
-								SkipLine();
-								MoveToIndentEnd(indent);
-								readLines++;
-								trim = true;
-								read = 0;
-								continue;
-							}
-							else if (c == '/' && Data[Position + 1] == '*') {
-								blockComment = true;
-								Position++;
-								continue;
-							}
-						}
-
-						if (trim) {
-							if (c == ' ' || c == '\t') {
-								Position++;
-								continue;
-							}
-						}
-
-						trim = false;
-						b.Append((byte)c);
-						read++;
-						Position++;
-					}
-
-					ValueLength = readLines + 1;
-					return b.ToString().TrimEnd(' ');
-				}
-				else {
-					byte previousChar = (byte)' ';
-
-					while (CanRead && Data[Position] != '\r' && Data[Position] != '\n') {
-						if (Data[Position] == '#' && (previousChar == ' ' || previousChar == '\t'))
-							break;
-
-						b.Append(Data[Position]);
-						previousChar = Data[Position];
-						Position++;
-					}
-
-					ValueLength = 1;
-					return b.ToString().TrimEnd(' ', '\t');
-				}
-			}
-
-			public char PeekChar() {
-				return (char)Data[Position];
-			}
-
-			public void MoveToIndentEnd(int max = int.MaxValue) {
-				while (CanRead && Data[Position] == ' ' && CurrentLineIndent < max) {
-					CurrentLineIndent++;
-					Position++;
-				}
-			}
-
-			public void SetupParent(ParserObject parent, int indent) {
-				if (parent.Indent == -1) {
-					if (CurrentLineIndent < indent)
-						throw GetException("Expected list or array declaration.");
-
-					parent.Indent = CurrentLineIndent;
-				}
-
-				if (parent.ChildrenIndent == -1) {
-					parent.ChildrenIndent = CurrentLineIndent;
-				}
-			}
-
-			public void SkipLine() {
-				while (CanRead) {
-					if (Data[Position++] == '\n') {
-						NextLine();
-						break;
-					}
-				}
-			}
-
-			public Exception GetException(string reason) {
-				// Attempt to read last line
-				string lastLine = "";
-				int oldPosition = Position;
-
-				try {
-					Position = _lastLineStartOffset;
-
-					while (CanRead) {
-						if (Data[Position++] == '\n') {
-							break;
-						}
-					}
-
-					int length = Position - oldPosition;
-
-					if (length > 0) {
-						lastLine = SdeAppConfiguration.EncodingServer.GetString(Data, oldPosition, length);
-					}
-				}
-				finally {
-					Position = oldPosition;
-				}
-
-				return new Exception("Failed to parse " + FileName + " at line " + LineNumber + ", position " + (Position - _lastLineStartOffset) + "\r\n" + (lastLine == "" ? "" : "* " + lastLine + "\r\n" + "Error: " + reason));
-			}
-		}
-
 		public enum YamlListType {
 			NotDefined,
 			Array,
 			KeyValue,
 		}
 
-		private void _parser_main(YamlFileData file) {
-			Output = new ParserArray(file.LineNumber);
+		byte* _p;
+		byte* _end;
+		private int _lineNumber = 1;
+		private int _lineIndent = 0;
+		private byte* _lastLineStartOffset;
+		private string _fileName;
+		private Encoding _encoding;
+
+		private unsafe void _parser_main() {
+			Output = new ParserArray(_lineNumber);
 			Output.Indent = -1;
 			Output.ChildrenIndent = -1;
 
-			_readNode(file, Output, 0, YamlListType.NotDefined);
+			_readNode(Output, 0, YamlListType.NotDefined);
 
 			if (Output.ParserType == ParserTypes.Array) {
 				var parserArray = Output.To<ParserArray>();
@@ -426,25 +157,25 @@ namespace SDE.Editor.Parsers.Yaml {
 			}
 		}
 
-		private void _readNode(YamlFileData file, ParserObject parent, int indent, YamlListType listType) {
+		private void _readNode(ParserObject parent, int indent, YamlListType listType) {
 			string word_s = null;
 			
-			while (file.CanRead) {
-				char c = file.PeekChar();
+			while (_p < _end) {
+				char c = (char)*_p;
 
-				switch (c) {
-					case '#':
-						file.SkipLine();
+				switch (*_p) {
+					case (byte)'#':
+						SkipLine();
 						continue;
-					case '\r':	// Ignore character
-						file.Position++;
+					case (byte)'\r':  // Ignore character
+						_p++;
 						continue;
-					case '\n':
-						file.Position++;
-						file.NextLine();
+					case (byte)'\n':
+						_p++;
+						NewLine();
 
 						if (listType == YamlListType.KeyValue && word_s != null) {
-							ParserString value = new ParserString(word_s, file.LineNumber - 1);
+							ParserString value = new ParserString(word_s, _lineNumber - 1);
 							value.Indent = parent.Indent;
 							value.Parent = parent;
 
@@ -458,8 +189,8 @@ namespace SDE.Editor.Parsers.Yaml {
 							}
 						}
 						continue;
-					case '-':
-						file.SetupParent(parent, indent);
+					case (byte)'-':
+						SetupParent(parent, indent);
 
 						if (listType == YamlListType.NotDefined) {
 							listType = YamlListType.Array;
@@ -469,28 +200,28 @@ namespace SDE.Editor.Parsers.Yaml {
 						switch(parent.ParserType) {
 							case ParserTypes.List:
 							case ParserTypes.Array:
-								if (file.CurrentLineIndent < parent.ChildrenIndent)
+								if (_lineIndent < parent.ChildrenIndent)
 									return;
 
-								if (file.CurrentLineIndent > parent.ChildrenIndent)
-									throw file.GetException("Unexpected indent (parent indent: " + parent.Indent + ", parent child indent: " + parent.ChildrenIndent + ", current indent: " + file.CurrentLineIndent + ").");
+								if (_lineIndent > parent.ChildrenIndent)
+									throw GetException("Unexpected indent (parent indent: " + parent.Indent + ", parent child indent: " + parent.ChildrenIndent + ", current indent: " + _lineIndent + ").");
 
 								break;
 						}
 
-						if (!(file.Position + 2 < file.Length && file.Data[file.Position + 1] == ' ' && file.IsLetter((char)file.Data[file.Position + 2]))) {
-							throw file.GetException("Expected a space after the hyphen for the list declaration.");
+						if (!(_p + 2 < _end && _p[1] == ' ' && IsLetter(_p[2]))) {
+							throw GetException("Expected a space after the hyphen for the list declaration.");
 						}
 
 						// Array declaration
-						ParserArray array = new ParserArray(file.LineNumber);
-						array.Indent = file.CurrentLineIndent;
-						file.CurrentLineIndent += 2;
-						array.ChildrenIndent = file.CurrentLineIndent;
+						ParserArray array = new ParserArray(_lineNumber);
+						array.Indent = _lineIndent;
+						_lineIndent += 2;
+						array.ChildrenIndent = _lineIndent;
 						array.Parent = parent;
-						file.Position += 2;
+						_p += 2;
 
-						_readNode(file, array, file.CurrentLineIndent, YamlListType.NotDefined);
+						_readNode(array, _lineIndent, YamlListType.NotDefined);
 
 						switch (parent.ParserType) {
 							case ParserTypes.List:
@@ -500,58 +231,58 @@ namespace SDE.Editor.Parsers.Yaml {
 								((ParserArray)parent).AddElement(array);
 								break;
 							default:
-								throw file.GetException("Unexpected parent node type. It can either be a list or an array, found a '" + parent.ParserType + "'.");
+								throw GetException("Unexpected parent node type. It can either be a list or an array, found a '" + parent.ParserType + "'.");
 						}
 
 						continue;
-					case ' ':
-						file.CurrentLineIndent++;
-						file.Position++;
+					case (byte)' ':
+						_lineIndent++;
+						_p++;
 						continue;
-					case ':':
+					case (byte)':':
 						if (string.IsNullOrEmpty(word_s)) {
-							throw file.GetException("Missing declaration key before ':'.");
+							throw GetException("Missing declaration key before ':'.");
 						}
 
-						file.Position++;
-						file.Trim();
+						_p++;
+						Trim();
 
-						ParserKeyValue keyValue = new ParserKeyValue(word_s, file.LineNumber);
+						ParserKeyValue keyValue = new ParserKeyValue(word_s, _lineNumber);
 						keyValue.Indent = parent.Indent;
 						keyValue.Parent = parent;
 						word_s = null;
 
 						// List declaration
-						if (file.EoL()) {
-							ParserList list = new ParserList(file.LineNumber);
-							list.Indent = file.CurrentLineIndent;
+						if (_p < _end && (*_p == '\n' || (_p + 1 < _end && *_p == '\r' && _p[1] == '\n'))) {
+							ParserList list = new ParserList(_lineNumber);
+							list.Indent = _lineIndent;
 							list.Parent = parent;
 							list.ChildrenIndent = -1;
 							keyValue.Value = list;
 
-							_readNode(file, list, file.CurrentLineIndent, YamlListType.NotDefined);
+							_readNode(list, _lineIndent, YamlListType.NotDefined);
 						}
-						else if (file.Data[file.Position] == '[') { // Aggregate parsing, does not support multi-line
-							file.Position++;
-							ParserAggregate aggregate = new ParserAggregate(file.LineNumber);
+						else if (*_p == '[') { // Aggregate parsing, does not support multi-line
+							_p++;
+							ParserAggregate aggregate = new ParserAggregate(_lineNumber);
 							aggregate.Parent = parent;
 
-							while (file.CanRead) {
-								c = file.PeekChar();
+							while (_p < _end) {
+								c = (char)*_p;
 
 								if (c == '\r' || c == '\n')
-									throw file.GetException("Unexpected syntax; multi-line aggregate arrays are not supported.");
+									throw GetException("Unexpected syntax; multi-line aggregate arrays are not supported.");
 
 								if (c == ']')
 									break;
 
-								word_s = c == '\"' ? file.ReadValue() : file.ReadWord();
-								aggregate.AddElement(new ParserString(word_s.Trim(' '), file.LineNumber));
-								c = file.PeekChar();
+								word_s = c == '\"' ? ReadValue() : ReadWord();
+								aggregate.AddElement(new ParserString(word_s.Trim(' '), _lineNumber));
+								c = (char)*_p;
 
 								while (c != '\n' && (c == ',' || c == ' ' || c == '\r')) {
-									file.Position++;
-									c = file.PeekChar();
+									_p++;
+									c = (char)*_p;
 								}
 							}
 
@@ -559,10 +290,10 @@ namespace SDE.Editor.Parsers.Yaml {
 							keyValue.Value = aggregate;
 						}
 						else {	// KeyValue, get the line number first!
-							var parserString = new ParserString(null, file.LineNumber);
+							var parserString = new ParserString(null, _lineNumber);
 							parserString.Parent = parent;
-							parserString.Value = file.ReadValue();
-							parserString.Length = file.ValueLength;
+							parserString.Value = ReadValue();
+							parserString.Length = _valueLength;
 							keyValue.Value = parserString;
 						}
 
@@ -577,7 +308,7 @@ namespace SDE.Editor.Parsers.Yaml {
 
 						continue;
 					default:
-						file.SetupParent(parent, indent);
+						SetupParent(parent, indent);
 
 						if (listType == YamlListType.NotDefined) {
 							listType = YamlListType.KeyValue;
@@ -586,36 +317,272 @@ namespace SDE.Editor.Parsers.Yaml {
 						// Validate parent indent
 						switch(parent.ParserType) {
 							case ParserTypes.List:
-								if (file.CurrentLineIndent < parent.ChildrenIndent || file.CurrentLineIndent <= parent.Indent)
+								if (_lineIndent < parent.ChildrenIndent || _lineIndent <= parent.Indent)
 									return;
 
-								if (file.CurrentLineIndent == parent.ChildrenIndent && listType != YamlListType.KeyValue)
+								if (_lineIndent == parent.ChildrenIndent && listType != YamlListType.KeyValue)
 									return;
 
-								if (file.CurrentLineIndent > parent.ChildrenIndent)
-									throw file.GetException("Unexpected indent while reading key (parent indent: " + parent.Indent + ", parent child indent: " + parent.ChildrenIndent + ", current indent: " + file.CurrentLineIndent + ").");
+								if (_lineIndent > parent.ChildrenIndent)
+									throw GetException("Unexpected indent while reading key (parent indent: " + parent.Indent + ", parent child indent: " + parent.ChildrenIndent + ", current indent: " + _lineIndent + ").");
 
 								break;
 							case ParserTypes.Array:
-								if (file.CurrentLineIndent < parent.ChildrenIndent)
+								if (_lineIndent < parent.ChildrenIndent)
 									return;
 
-								if (file.CurrentLineIndent > parent.ChildrenIndent)
-									throw file.GetException("Unexpected indent while reading key (parent indent: " + parent.Indent + ", parent child indent: " + parent.ChildrenIndent + ", current indent: " + file.CurrentLineIndent + ").");
+								if (_lineIndent > parent.ChildrenIndent)
+									throw GetException("Unexpected indent while reading key (parent indent: " + parent.Indent + ", parent child indent: " + parent.ChildrenIndent + ", current indent: " + _lineIndent + ").");
 
 								break;
 						}
 
-						word_s = file.ReadKey().Trim(' ', '\t');
+						word_s = ReadKey().Trim(' ', '\t');
 
 						if (word_s.Length == 0) {
-							throw file.GetException("Null-length word. This is most likely caused by an unexpected character in a string.");
+							throw GetException("Null-length word. This is most likely caused by an unexpected character in a string.");
 						}
 
-						file.Trim();
+						Trim();
 						continue;
 				}
 			}
+		}
+
+		public string ReadKey() {
+			byte* start = _p;
+			byte previous = 0;
+
+			while (_p < _end) {
+				if (*_p == '\r' || *_p == '\n' || *_p == ':' || (*_p == '#' && (previous == ' ' || previous == '\t')))
+					break;
+				_p++;
+			}
+
+			return _encoding.GetString(start, (int)(_p - start));
+		}
+
+		public string ReadWord() {
+			byte* start = _p;
+
+			while (_p < _end) {
+				if (*_p == '\r' || *_p == '\n' || *_p == ':' || *_p == ']')
+					break;
+				_p++;
+			}
+
+			return _encoding.GetString(start, (int)(_p - start));
+		}
+
+		private int _valueLength = 0;
+
+		public string ReadValue() {
+			byte* start = _p;
+			_valueLength = 0;
+
+			if (*_p == '\"') {
+				start = ++_p;
+
+				while (_p < _end && *_p != '\r' && *_p != '\n') {
+					if (*_p == '\"' && *(_p - 1) != '\\') {
+						_p++;
+						break;
+					}
+
+					_p++;
+				}
+
+				_valueLength = 1;
+				return _encoding.GetString(start, (int)(_p - start) - 1);
+			}
+			else if (*_p == '|' || *_p == '>') {
+				int indent = _lineIndent;
+
+				SkipLine();
+				MoveToIndentEnd();
+
+				if (_lineIndent < indent) // Technically valid
+					return "";
+
+				// Remove all comment blocks, makes it easier to handle afterwards
+				indent = _lineIndent;
+				int readLines = 0;
+				bool trim = true;
+				int read = 0;
+				StringBuilder b = new StringBuilder();
+
+				while (_p < _end) {
+					if (trim) {
+						while (_p < _end && (*_p == ' ' || *_p == '\t')) _p++;
+					}
+
+					if (*_p == '\n' || (*_p == '\r' && _p + 1 < _end && _p[1] == '\n')) {
+						if (*_p == '\n')
+							_p++;
+						else
+							_p += 2;
+
+						NewLine();
+						MoveToIndentEnd(indent);
+
+						if (read > 0) {
+							b.Append(_encoding.GetString(start, read));
+							b.Append(' ');
+						}
+
+						readLines++;
+						trim = true;
+						read = 0;
+						continue;
+					}
+
+					if (_lineIndent < indent) { // Needs to be checked after to make an exception for empty lines
+						break;
+					}
+
+					if (*_p == '/' && _p + 1 < _end) {
+						if (_p[1] == '/') {
+							SkipLine();
+							NewLine();
+							MoveToIndentEnd(indent);
+							readLines++;
+							trim = true;
+							read = 0;
+							continue;
+						}
+						else if (_p[1] == '*') {
+							// Read start comment block '/*'
+							_p += 2;
+
+							while (_p < _end) {
+								if (*_p == '\n')
+									NewLine();
+								else if (*_p == '*' && _p + 1 < _end && _p[1] == '/')
+									break;
+								_p++;
+							}
+
+							// Read end comment block '*/'
+							_p += 2;
+							continue;
+						}
+					}
+
+					if (trim) {
+						if (read > 0)
+							b.Append(_encoding.GetString(start, read));
+						start = _p;
+					}
+
+					trim = false;
+					read++;
+					_p++;
+				}
+
+				if (read > 0)
+					b.Append(_encoding.GetString(start, read));
+
+				int trimIdx = b.Length - 1;
+				int trimLength = 0;
+				while (b.Length > 0 && b[trimIdx - trimLength] == ' ') trimLength++;
+
+				if (trimLength > 0)
+					b.Remove(b.Length - trimLength, trimLength);
+
+				_valueLength = readLines;
+				return b.ToString();
+			}
+			else {
+				byte previousChar = (byte)' ';
+
+				while (_p < _end && *_p != '\r' && *_p != '\n') {
+					if (*_p == '#' && (previousChar == ' ' || previousChar == '\t'))
+						break;
+
+					previousChar = *_p;
+					_p++;
+				}
+
+				byte* end = _p;
+
+				while (end > start && (*(end - 1) == ' ' || *(end - 1) == '\t')) end--;
+				_valueLength = 1;
+				return _encoding.GetString(start, (int)(end - start));
+			}
+		}
+
+		public void SkipLine() {
+			while (_p < _end && *_p != '\n') _p++;
+		}
+
+		public void MoveToIndentEnd(int max = int.MaxValue) {
+			while (_p < _end && *_p == ' ' && _lineIndent < max) {
+				_lineIndent++;
+				_p++;
+			}
+		}
+
+		public void Trim() {
+			while (true) {
+				while (_p < _end && (*_p == ' ' || *_p == '\t')) _p++;
+
+				if (*_p == '#') {
+					SkipLine();
+					continue;
+				}
+
+				break;
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool IsLetter(byte b) {
+			return (b >= 'a' && b <= 'z' ||
+					b >= 'A' && b <= 'Z' ||
+					b >= '0' && b <= '9' ||
+					b == '_' || b == '-' || b == '\'' || b == '.' || b == '+' || b == '?' || b == '<' || b == '>' || b == '/');
+		}
+
+		private void NewLine() {
+			_lineNumber++;
+			_lineIndent = 0;
+			_lastLineStartOffset = _p;
+		}
+
+		public void SetupParent(ParserObject parent, int indent) {
+			if (parent.Indent == -1) {
+				if (_lineIndent < indent)
+					throw GetException("Expected list or array declaration.");
+
+				parent.Indent = _lineIndent;
+			}
+
+			if (parent.ChildrenIndent == -1) {
+				parent.ChildrenIndent = _lineIndent;
+			}
+		}
+
+		public Exception GetException(string reason) {
+			// Attempt to read last line
+			string lastLine = "";
+			byte* start = _p;
+
+			try {
+				_p = _lastLineStartOffset;
+
+				while (_p < _end && *_p != '\n') _p++;
+
+				int length = (int)(_p - start);
+
+				if (length > 0) {
+					lastLine = _encoding.GetString(start, length);
+				}
+			}
+			finally {
+				_p = start;
+			}
+
+			return new Exception("Failed to parse " + _fileName + " at line " + _lineNumber + ", position " + (int)(_p - _lastLineStartOffset) + "\r\n" + (lastLine == "" ? "" : "* " + lastLine + "\r\n" + "Error: " + reason));
 		}
 
 		private int _getLength(ParserObject obj) {

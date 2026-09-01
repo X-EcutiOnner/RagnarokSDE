@@ -15,7 +15,6 @@ using SDE.Databases.Generic.Common;
 using SDE.Databases.Generic.SearchDescriptors;
 using SDE.Editor.Database;
 using SDE.Editor.Generic.DbTabs;
-using SDE.Editor.SearchFeature;
 using SDE.View;
 using SDE.View.Controls;
 using TokeiLibrary;

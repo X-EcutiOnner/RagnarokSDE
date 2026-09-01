@@ -4,7 +4,6 @@ using SDE.Databases.ClientItems.TabCommands;
 using SDE.Databases.Generic.TabCommands;
 using SDE.Editor.Database;
 using SDE.Editor.Generic.DbTabs;
-using SDE.Editor.Parsers;
 using System;
 using System.IO;
 using System.Windows;

@@ -9,7 +9,6 @@ using System.Windows.Media;
 using ErrorManager;
 using GRF.Core.GroupedGrf;
 using SDE.Editor;
-using SDE.Editor.Files;
 using TokeiLibrary.WPF.Styles;
 using Utilities;
 using Utilities.Services;

@@ -3,7 +3,6 @@ using SDE.Databases.Generic.Features;
 using SDE.Databases.Skills.Common;
 using SDE.Databases.Skills.Features;
 using SDE.Editor.Database;
-using SDE.View.Dialogs;
 using SDE.View.Editors.ItemCostEdit;
 using System.Linq;
 using System.Runtime.CompilerServices;

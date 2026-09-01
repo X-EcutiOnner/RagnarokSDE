@@ -7,7 +7,6 @@ using System.Windows.Media;
 using Database;
 using SDE.Databases.Generic.SearchDescriptors;
 using SDE.Editor.Database;
-using SDE.Editor.SearchFeature;
 using TokeiLibrary;
 using TokeiLibrary.WPF;
 using TokeiLibrary.WPF.Styles.ListView;

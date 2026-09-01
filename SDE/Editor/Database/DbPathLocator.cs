@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using ErrorManager;
 using GRF.IO;
 using GRF.GrfSystem;
 using SDE.ApplicationConfiguration;
@@ -10,7 +9,6 @@ using SDE.View;
 using Utilities;
 using Utilities.Extension;
 using SDE.Databases;
-using SDE.Editor.Files;
 
 namespace SDE.Editor.Database {
 	public static class DbPathLocator {

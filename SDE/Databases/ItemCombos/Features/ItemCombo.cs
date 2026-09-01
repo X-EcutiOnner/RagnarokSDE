@@ -64,12 +64,13 @@ namespace SDE.Databases.ItemCombos.Features {
 			return StructuralComparer<ItemCombo>.GetHashCode(this);
 		}
 
-		public long ToUniqueId() {
+		public static long ToUniqueId(List<NameId> nameIds) {
 			// FNV-1a 64-bit offsets
 			ulong hash = 14695981039346656037;
 			const ulong prime = 1099511628211;
 
-			foreach (var item in NameIds) {
+			// The unique key generated must be order independent
+			foreach (var item in nameIds.OrderBy(p => p.Item)) {
 				string str = item.Item; // Access the inner string
 				if (string.IsNullOrEmpty(str))
 					continue;
@@ -84,6 +85,10 @@ namespace SDE.Databases.ItemCombos.Features {
 			}
 
 			return (long)hash;
+		}
+
+		public long ToUniqueId() {
+			return ToUniqueId(NameIds);
 		}
 	}
 }

@@ -59,37 +59,41 @@
     <Optimize>true</Optimize>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <LibDir>$(SolutionDir)..\..\tktoolsuite\Libraries\</LibDir>
+    <LibDir Condition="!Exists('$(LibDir)')">$(SolutionDir)Libraries\</LibDir>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="ColorPicker, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(SolutionDir)Libraries\ColorPicker.dll</HintPath>
+      <HintPath>$(LibDir)ColorPicker.dll</HintPath>
     </Reference>
     <Reference Include="Database, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(SolutionDir)Libraries\Database.dll</HintPath>
+      <HintPath>$(LibDir)Database.dll</HintPath>
     </Reference>
     <Reference Include="ErrorManager, Version=1.2.5494.34248, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(SolutionDir)Libraries\ErrorManager.dll</HintPath>
+      <HintPath>$(LibDir)ErrorManager.dll</HintPath>
     </Reference>
     <Reference Include="GRF, Version=1.2.7852.19277, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(SolutionDir)Libraries\GRF.dll</HintPath>
+      <HintPath>$(LibDir)GRF.dll</HintPath>
     </Reference>
     <Reference Include="GrfToWpfBridge, Version=1.0.0.1, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(SolutionDir)Libraries\GrfToWpfBridge.dll</HintPath>
+      <HintPath>$(LibDir)GrfToWpfBridge.dll</HintPath>
     </Reference>
     <Reference Include="ICSharpCode.AvalonEdit, Version=4.3.1.9429, Culture=neutral, PublicKeyToken=9cc39be672370310, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(SolutionDir)Libraries\ICSharpCode.AvalonEdit.dll</HintPath>
+      <HintPath>$(LibDir)ICSharpCode.AvalonEdit.dll</HintPath>
     </Reference>
     <Reference Include="IronPython">
-      <HintPath>$(SolutionDir)Libraries\IronPython.dll</HintPath>
+      <HintPath>$(LibDir)IronPython.dll</HintPath>
     </Reference>
     <Reference Include="Lua, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(SolutionDir)Libraries\Lua.dll</HintPath>
+      <HintPath>$(LibDir)Lua.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Dynamic, Version=1.1.0.20, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -111,11 +115,11 @@
     <Reference Include="System.Xml.Linq" />
     <Reference Include="TokeiLibrary, Version=1.2.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(SolutionDir)Libraries\TokeiLibrary.dll</HintPath>
+      <HintPath>$(LibDir)TokeiLibrary.dll</HintPath>
     </Reference>
     <Reference Include="Utilities, Version=1.2.7852.19276, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(SolutionDir)Libraries\Utilities.dll</HintPath>
+      <HintPath>$(LibDir)Utilities.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
@@ -136,8 +140,18 @@
     <Compile Include="ApplicationConfiguration\SdeCommands.cs" />
     <Compile Include="ApplicationConfiguration\StackTraceException.cs" />
     <Compile Include="Databases\Emotes\EmoteAttributes.cs" />
+    <Compile Include="Databases\ItemCombos\Controls\ScriptAutocompleteButton.xaml.cs">
+      <DependentUpon>ScriptAutocompleteButton.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Databases\Items\Controls\ScriptAutocompleteButton.xaml.cs">
+      <DependentUpon>ScriptAutocompleteButton.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Databases\Titles\Parser\TitleParserProvider.cs" />
     <Compile Include="Databases\Titles\TitleAttributes.cs" />
+    <Compile Include="View\Editors\ScriptEdit\LuaEquipmentProperties.cs" />
+    <Compile Include="View\Editors\ScriptEdit\AthenaAstWriter.cs" />
+    <Compile Include="View\Editors\ScriptEdit\AthenaAst.cs" />
+    <Compile Include="View\Editors\ScriptEdit\LuaAstToAthenaAst.cs" />
     <Compile Include="Tools\ActViewer\ReadonlyActIndexSelector.xaml.cs">
       <DependentUpon>ReadonlyActIndexSelector.xaml</DependentUpon>
     </Compile>
@@ -856,6 +870,14 @@
     <EmbeddedResource Include="Resources\def_head.spr" />
   </ItemGroup>
   <ItemGroup>
+    <Page Include="Databases\ItemCombos\Controls\ScriptAutocompleteButton.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Databases\Items\Controls\ScriptAutocompleteButton.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Tools\ActViewer\ReadonlyActIndexSelector.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

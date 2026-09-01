@@ -1,5 +1,4 @@
 ﻿using SDE.Editor.Database;
-using SDE.Editor.Generic;
 using SDE.View;
 using System.IO;
 using System.Linq;

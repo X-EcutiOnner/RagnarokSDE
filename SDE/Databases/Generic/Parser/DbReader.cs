@@ -3,7 +3,6 @@ using GRF.IO;
 using SDE.Databases.Generic.Common;
 using SDE.Editor;
 using SDE.Editor.Database;
-using SDE.Editor.Files;
 using SDE.Editor.Parsers;
 using SDE.Editor.Parsers.Yaml;
 using SDE.View;

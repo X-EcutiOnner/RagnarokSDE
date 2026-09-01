@@ -13,7 +13,6 @@ using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Highlighting.Xshd;
 using ICSharpCode.AvalonEdit.Rendering;
 using SDE.Editor.LuaTables;
-using SDE.View.Dialogs;
 using SDE.View.Editors;
 
 namespace SDE.Core.Avalon {

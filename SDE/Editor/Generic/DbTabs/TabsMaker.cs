@@ -7,7 +7,6 @@ using System.Windows.Input;
 using ErrorManager;
 using SDE.ApplicationConfiguration;
 using SDE.Editor.Database;
-using SDE.Editor.Files;
 using SDE.View;
 using TokeiLibrary;
 using TokeiLibrary.WPF.Styles;

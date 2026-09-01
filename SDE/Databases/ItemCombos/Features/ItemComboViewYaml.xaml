@@ -11,6 +11,7 @@
              xmlns:ListView="clr-namespace:TokeiLibrary.WPF.Styles.ListView;assembly=TokeiLibrary"
 			 xmlns:wpfbugfix="clr-namespace:TokeiLibrary.WpfBugFix;assembly=TokeiLibrary"
              xmlns:Common="clr-namespace:SDE.Databases.Generic.Common" xmlns:styles="clr-namespace:TokeiLibrary.WPF.Styles;assembly=TokeiLibrary"
+			 xmlns:Controls="clr-namespace:SDE.Databases.ItemCombos.Controls"
 			 Foreground="{DynamicResource TextForeground}"
 			 mc:Ignorable="d" 
 			 MaxWidth="800"
@@ -133,6 +134,7 @@
 					<f:ValidationTextBox Text="{Binding Script, UpdateSourceTrigger=PropertyChanged}" />
 				</f:Property.Editor>
 				<f:Property.Extras>
+					<Controls:ScriptAutocompleteButton SourceField="{Binding Script}" DestinationField="{Binding Script}" />
 					<f:ScriptEditButton SourceField="{Binding Script}" />
 				</f:Property.Extras>
 			</f:Property>

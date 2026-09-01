@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -10,11 +7,7 @@ using SDE.ApplicationConfiguration;
 using SDE.Core;
 using SDE.Databases.Generic.Converters;
 using SDE.Databases.Generic.Controls;
-using SDE.Databases.Generic.Parser;
-using SDE.Editor.Generic.Parsers.Generic;
 using TokeiLibrary.WPF.Styles;
-using SDE.Databases.Generic.Features;
-using SDE.View.Editors.ItemCostEdit;
 using SDE.View.Dialogs;
 
 namespace SDE.View.Editors.ItemCostEdit {

@@ -12,7 +12,6 @@ using GrfToWpfBridge.ActRenderer.ActSelectorComponents;
 using SDE.ApplicationConfiguration;
 using SDE.Databases.Items.Features;
 using SDE.Editor.LuaTables;
-using SDE.Tools.ActViewer;
 using SDE.View;
 using SDE.View.Editors;
 using TokeiLibrary;

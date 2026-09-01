@@ -46,6 +46,8 @@
 				</MenuItem>
 			</Menu>
 			<avalonedit:TextEditor Grid.Row="1"
+							   SnapsToDevicePixels="True"
+							   UseLayoutRounding="True"
 					Name="_textEditor"
 					FontFamily="Consolas"
 					SyntaxHighlighting="IronPython"

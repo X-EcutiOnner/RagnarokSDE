@@ -162,6 +162,10 @@ namespace SDE.Databases.Generic.Parser {
 			}
 		}
 
+		public static string ScriptToSingleLineScript(string val) {
+			return Methods.Aggregate(val.Split(new string[] { Environment.NewLine, "\n" }, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim(' ', '\t') + " ").ToList(), "").Trim(' ');
+		}
+
 		public static string AutoFormatScript(string val) {
 			val = val ?? "";
 			StringBuilder builder = new StringBuilder();

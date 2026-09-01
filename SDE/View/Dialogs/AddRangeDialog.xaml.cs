@@ -6,7 +6,6 @@ using System.Windows.Input;
 using ErrorManager;
 using SDE.Databases;
 using SDE.Editor.Database;
-using SDE.Editor.Generic;
 using SDE.Editor.Generic.DbTabs;
 using SDE.View.Editors;
 using TokeiLibrary;

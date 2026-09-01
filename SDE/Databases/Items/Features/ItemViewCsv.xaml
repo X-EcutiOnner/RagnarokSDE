@@ -208,6 +208,7 @@
 					<f:ValidationTextBox Text="{Binding Script}" />
 				</f:Property.Editor>
 				<f:Property.Extras>
+					<Controls:ScriptAutocompleteButton SourceField="{Binding Script}" DestinationField="{Binding Script}" />
 					<f:ScriptEditButton SourceField="{Binding Script}" />
 				</f:Property.Extras>
 			</f:Property>

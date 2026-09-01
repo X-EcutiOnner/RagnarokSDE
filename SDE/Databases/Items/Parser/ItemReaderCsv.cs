@@ -1,12 +1,9 @@
-﻿using ErrorManager;
-using SDE.ApplicationConfiguration;
-using SDE.Databases.Generic.Common;
+﻿using SDE.Databases.Generic.Common;
 using SDE.Databases.Generic.Common.Jobs;
 using SDE.Databases.Generic.Parser;
 using SDE.Databases.Items.Common;
 using SDE.Databases.Items.Features;
 using SDE.Editor.Database;
-using SDE.Editor.Files;
 using SDE.Editor.Generic.Parsers.Generic;
 using SDE.Editor.Parsers;
 using System;

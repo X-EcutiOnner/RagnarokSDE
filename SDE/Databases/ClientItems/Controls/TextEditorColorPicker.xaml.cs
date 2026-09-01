@@ -10,9 +10,7 @@ using GrfToWpfBridge;
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Editing;
 using SDE.ApplicationConfiguration;
-using SDE.Databases.ClientItems.Controls;
 using SDE.View.Controls;
-using SDE.View.Dialogs;
 using SDE.View.Editors;
 using Utilities;
 

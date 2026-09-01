@@ -2,7 +2,6 @@
 using System.Windows;
 using System.Windows.Input;
 using SDE.Databases;
-using SDE.View.Dialogs;
 using TokeiLibrary.WPF.Styles;
 
 namespace SDE.View.Editors {

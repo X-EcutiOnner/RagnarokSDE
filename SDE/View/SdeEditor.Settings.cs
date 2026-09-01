@@ -12,7 +12,6 @@ using GRF.Threading;
 using GrfToWpfBridge.Application;
 using SDE.ApplicationConfiguration;
 using SDE.Editor;
-using SDE.Editor.Files;
 using SDE.Editor.Generic.DbTabs;
 using SDE.View.Controls;
 using TokeiLibrary;

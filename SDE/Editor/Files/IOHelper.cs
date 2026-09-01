@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using ErrorManager;
 using GRF.IO;
 using SDE.ApplicationConfiguration;
 using SDE.Core;
-using SDE.Editor.Engines;
 using SDE.View;
 
 namespace SDE.Editor.Files {

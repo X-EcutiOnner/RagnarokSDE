@@ -2,7 +2,6 @@
 using SDE.Editor.Database;
 using SDE.Editor.Navigation;
 using SDE.View;
-using SDE.View.Dialogs;
 using SDE.View.Editors;
 using System;
 using System.Linq;

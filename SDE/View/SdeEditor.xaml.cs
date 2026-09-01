@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -29,16 +28,13 @@ using SDE.Editor.Navigation;
 using SDE.Tools.SDEMapcache;
 using SDE.View.Controls;
 using SDE.View.Dialogs;
-using SDE.View.ObjectView;
 using TokeiLibrary;
 using TokeiLibrary.Shortcuts;
 using TokeiLibrary.WPF.Styles;
-using TokeiLibrary.WPF.Styles.ListView;
 using TokeiLibrary.WpfBugFix;
 using Utilities;
 using Utilities.CommandLine;
-using Utilities.Services;
-using Lua;
+using SDE.Editor.Parsers.Yaml;
 
 namespace SDE.View {
 	/// <summary>
