@@ -356,6 +356,7 @@ namespace SDE.Editor.Parsers.Yaml {
 			while (_p < _end) {
 				if (*_p == '\r' || *_p == '\n' || *_p == ':' || (*_p == '#' && (previous == ' ' || previous == '\t')))
 					break;
+				previous = *_p;
 				_p++;
 			}
 
